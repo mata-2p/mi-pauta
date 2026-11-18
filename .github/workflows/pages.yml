@@ -39,7 +39,7 @@ jobs:
       - name: Tests de JavaScript (node --test)
         run: |
           if [ -n "$(find tests/pauta-personal -name '*.test.mjs' -print -quit)" ]; then
-            node --test tests/pauta-personal/
+            node --test 'tests/pauta-personal/*.test.mjs'
           else
             echo "no hay *.test.mjs; se omite"
           fi
