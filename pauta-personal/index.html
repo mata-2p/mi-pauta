@@ -12,248 +12,339 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Mi pauta">
   <link rel="stylesheet" href="styles.css">
+  <script src="router.js"></script>
 </head>
-<body>
+<body class="pauta">
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <symbol id="i-plate" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/></symbol>
+    <symbol id="i-note" viewBox="0 0 24 24"><path d="M5 3.5h10l4 4V20.5H5z"/><path d="M14.5 3.5V8H19M8.5 12h7M8.5 16h5"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M3.5 11L12 4l8.5 7"/><path d="M6 9.5V20h12V9.5"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24"><path d="M9.5 6.5h10M9.5 12h10M9.5 17.5h10"/><path d="M4 6.5l1.2 1.2L7.4 5.3M4 12l1.2 1.2 2.2-2.4M4 17.5l1.2 1.2 2.2-2.4"/></symbol>
+    <symbol id="i-basket" viewBox="0 0 24 24"><path d="M3.5 10h17l-1.8 9.5H5.3z"/><path d="M8 10l3-6M16 10l-3-6M9 14v2.5M15 14v2.5"/></symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.2 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z"/></symbol>
+    <symbol id="i-pot" viewBox="0 0 24 24"><path d="M4 10h16v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z"/><path d="M2 10h20M9 6.5c0-1 1-1 1-2M14 6.5c0-1 1-1 1-2"/></symbol>
+    <symbol id="i-tag" viewBox="0 0 24 24"><path d="M3.5 12.5V4h8.5l8.5 8.5-8 8z"/><circle cx="8" cy="8.5" r="1.3"/></symbol>
+    <symbol id="i-calcheck" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4M9 15l2 2 4-4"/></symbol>
+    <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></symbol>
+    <symbol id="i-num" viewBox="0 0 24 24"><rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M7.5 9h4M7.5 13h9M7.5 17h6"/></symbol>
+    <symbol id="i-q" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.6V14M12 17.2v.3"/></symbol>
+    <symbol id="i-clip" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3"/></symbol>
+    <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 3v12M7.5 7.5L12 3l4.5 4.5"/><path d="M5 12v7h14v-7"/></symbol>
+    <symbol id="i-speaker" viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 9a4 4 0 0 1 0 6M19 6.5a7.5 7.5 0 0 1 0 11"/></symbol>
+    <symbol id="i-yes" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/></symbol>
+    <symbol id="i-less" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></symbol>
+    <symbol id="i-right" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+    <symbol id="i-left" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+  </svg>
+
   <a class="skip" href="#contenido">Ir al contenido</a>
 
   <header class="top">
     <div class="wrap">
-      <h1>Mi pauta de alimentación</h1>
-      <p class="sub">Indicaciones de tu nutricionista al alta</p>
+      <a class="brand" href="#inicio"><svg class="i" aria-hidden="true"><use href="#i-plate"/></svg>Mi pauta</a>
+      <nav class="switch" aria-label="Páginas">
+        <a href="index.html" aria-current="page"><svg class="i" aria-hidden="true"><use href="#i-book"/></svg>Pauta</a>
+        <a href="registro.html"><svg class="i" aria-hidden="true"><use href="#i-note"/></svg>Anotaciones</a>
+      </nav>
       <div class="size" role="group" aria-label="Tamaño de la letra">
         <button type="button" id="smaller" aria-label="Letra más chica">A−</button>
         <button type="button" id="bigger" aria-label="Letra más grande">A+</button>
       </div>
-      <a class="pagelink" href="registro.html">Mis anotaciones <span aria-hidden="true">→</span></a>
     </div>
   </header>
 
-  <nav class="menu" aria-label="Secciones">
-    <ul class="wrap">
-      <li><a href="#indicaciones">Indicaciones</a></li>
-      <li><a href="#elegir">Qué elegir</a></li>
-      <li><a href="#dia">Un día de ejemplo</a></li>
-      <li><a href="#presion">Presión arterial</a></li>
-      <li><a href="#cocina">Para quien cocina</a></li>
-      <li><a href="#etiquetas">Leer etiquetas</a></li>
-      <li><a href="#seguimiento">Seguimiento</a></li>
-    </ul>
-  </nav>
+  <main id="contenido" class="wrap" tabindex="-1">
 
-  <main id="contenido" class="wrap">
+    <!-- Inicio: one tile per section -->
+    <div id="inicio" class="hub">
+      <div class="hello">
+        <h1>Mi pauta de alimentación</h1>
+        <p>Indicaciones de tu nutricionista al alta. Toca lo que quieras ver.</p>
+      </div>
 
-    <section id="indicaciones" aria-labelledby="t-indicaciones">
-      <div class="head">
-        <h2 id="t-indicaciones">Indicaciones generales</h2>
-        <button type="button" class="speak" data-target="indicaciones">Escuchar</button>
-      </div>
-      <div class="card objetivo">
-        <h3>Objetivo</h3>
-        <p>Ayudar a la recuperación de los riñones, mantener una buena hidratación y controlar la presión arterial, evitando el exceso de sal y alimentos ultraprocesados.</p>
-      </div>
-      <ul class="list">
-        <li>Realizar 4 tiempos de comida al día: desayuno, almuerzo, once y cena. Si necesita una colación, puede incorporarla según apetito y horario.</li>
-        <li>No agregar sal a las comidas en la mesa. Para dar sabor puede usar limón, ajo, cebolla, orégano, perejil, cilantro, u otras hierbas y especias sin sal.</li>
-        <li>Preferir alimentos frescos y preparados en casa.</li>
-        <li>Evitar el consumo frecuente de alimentos envasados, instantáneos y muy salados.</li>
-        <li><strong>No usar 'sal light' o sustitutos de sal con potasio.</strong></li>
+      <h2 class="group-h" id="g-pauta">Tu pauta</h2>
+      <ul class="tiles" aria-labelledby="g-pauta">
+        <li class="tile"><span class="ico"><svg class="i" aria-hidden="true"><use href="#i-list"/></svg></span><a href="#indicaciones">Indicaciones</a><p class="d">El objetivo y las indicaciones generales</p><svg class="i go" aria-hidden="true"><use href="#i-right"/></svg></li>
+        <li class="tile"><span class="ico"><svg class="i" aria-hidden="true"><use href="#i-basket"/></svg></span><a href="#elegir">Qué elegir</a><p class="d">Preferir y limitar, por grupo de alimentos</p><svg class="i go" aria-hidden="true"><use href="#i-right"/></svg></li>
+        <li class="tile"><span class="ico"><svg class="i" aria-hidden="true"><use href="#i-plate"/></svg></span><a href="#dia">Un día de ejemplo</a><p class="d">Desayuno, almuerzo, once, cena y colación</p><svg class="i go" aria-hidden="true"><use href="#i-right"/></svg></li>
+        <li class="tile"><span class="ico"><svg class="i" aria-hidden="true"><use href="#i-heart"/></svg></span><a href="#presion">Presión arterial</a><p class="d">Las indicaciones sobre la sal</p><svg class="i go" aria-hidden="true"><use href="#i-right"/></svg></li>
+        <li class="tile"><span class="ico"><svg class="i" aria-hidden="true"><use href="#i-pot"/></svg></span><a href="#cocina">Para quien cocina</a><p class="d">Guía para el familiar que cocina</p><svg class="i go" aria-hidden="true"><use href="#i-right"/></svg></li>
+        <li class="tile"><span class="ico"><svg class="i" aria-hidden="true"><use href="#i-tag"/></svg></span><a href="#etiquetas">Leer etiquetas</a><p class="d">Sellos, sodio e ingredientes</p><svg class="i go" aria-hidden="true"><use href="#i-right"/></svg></li>
+        <li class="tile"><span class="ico"><svg class="i" aria-hidden="true"><use href="#i-calcheck"/></svg></span><a href="#seguimiento">Seguimiento</a><p class="d">Los controles después del alta</p><svg class="i go" aria-hidden="true"><use href="#i-right"/></svg></li>
       </ul>
-    </section>
 
-    <section id="elegir" aria-labelledby="t-elegir">
-      <div class="head">
-        <h2 id="t-elegir">¿Qué alimentos elegir?</h2>
-        <button type="button" class="speak" data-target="elegir">Escuchar</button>
-      </div>
-
-      <article class="card group">
-        <h3>Pan y cereales</h3>
-        <p class="lbl">Preferir</p>
-        <p>Pan con bajo contenido de sodio, avena, arroz, fideos, sémola, papa.</p>
-        <p class="lbl">Limitar o evitar</p>
-        <p>Pan muy salado, sopaipillas y productos instantáneos.</p>
-      </article>
-
-      <article class="card group">
-        <h3>Carnes y proteínas</h3>
-        <p class="lbl">Preferir</p>
-        <p>Pollo, pavo, pescado, carne magra y huevo. Preferir preparaciones caseras.</p>
-        <p class="lbl">Limitar o evitar</p>
-        <p>Cecinas, vienesas, hamburguesas procesadas, nuggets y carnes muy saladas.</p>
-      </article>
-
-      <article class="card group">
-        <h3>Lácteos</h3>
-        <p class="lbl">Preferir</p>
-        <p>Leche, yogur natural y quesillos bajos en sodio.</p>
-        <p class="lbl">Limitar o evitar</p>
-        <p>Quesos muy salados y lácteos con alto contenido de sodio.</p>
-      </article>
-
-      <article class="card group">
-        <h3>Verduras</h3>
-        <p class="lbl">Preferir</p>
-        <p>Verduras frescas, cocidas o al vapor, según tolerancia.</p>
-        <p class="lbl">Limitar o evitar</p>
-        <p>Verduras en conserva y preparaciones con mucho caldo o sal.</p>
-      </article>
-
-      <article class="card group">
-        <h3>Frutas</h3>
-        <p class="lbl">Preferir</p>
-        <p>Fruta fresca, según tolerancia.</p>
-        <p class="lbl">Limitar o evitar</p>
-        <p>Frutas en conserva con almíbar y productos con mucha azúcar añadida.</p>
-      </article>
-
-      <article class="card group">
-        <h3>Grasas</h3>
-        <p class="lbl">Preferir</p>
-        <p>Aceite de oliva o canola en pequeñas cantidades, palta y frutos secos sin sal.</p>
-        <p class="lbl">Limitar o evitar</p>
-        <p>Mantequilla en exceso, frituras y frutos secos salados.</p>
-      </article>
-
-      <article class="card group">
-        <h3>Bebidas</h3>
-        <p class="lbl">Preferir</p>
-        <p>Agua y líquidos indicados por el equipo de salud.</p>
-        <p class="lbl">Limitar o evitar</p>
-        <p>Bebidas energéticas, sopas instantáneas y exceso de bebidas azucaradas.</p>
-      </article>
-    </section>
-
-    <section id="dia" aria-labelledby="t-dia">
-      <div class="head">
-        <h2 id="t-dia">Ejemplo de un día de alimentación</h2>
-        <button type="button" class="speak" data-target="dia">Escuchar</button>
-      </div>
-
-      <article class="card meal">
-        <h3>Desayuno</h3>
-        <p>1 taza de leche descremada o yogurt natural + 2 rebanadas de pan con bajo contenido de sodio + 1 huevo o quesillo bajo en sodio + 1 porción de fruta.</p>
-      </article>
-      <article class="card meal">
-        <h3>Almuerzo</h3>
-        <p>Ensalada de verduras sin sal agregada + 1 porción de pollo, pescado o carne magra + 1 porción de arroz, fideos o papa + 1 cucharadita de aceite + 1 fruta.</p>
-      </article>
-      <article class="card meal">
-        <h3>Once</h3>
-        <p>1 taza de leche o yogurt natural + 2 rebanadas de pan con bajo contenido de sodio + huevo, pollo desmenuzado o quesillo bajo en sodio.</p>
-      </article>
-      <article class="card meal">
-        <h3>Cena</h3>
-        <p>1 porción de pollo, pescado, huevo o carne magra + 1 porción de arroz, fideos, papa o puré + verduras. Preparar sin agregar sal.</p>
-      </article>
-      <article class="card meal">
-        <h3>Colación (si es necesaria)</h3>
-        <p>1 fruta, yogurt natural o una pequeña porción de frutos secos sin sal.</p>
-      </article>
-    </section>
-
-    <section id="presion" aria-labelledby="t-presion">
-      <div class="head">
-        <h2 id="t-presion">Para controlar la presión arterial</h2>
-        <button type="button" class="speak" data-target="presion">Escuchar</button>
-      </div>
-      <ul class="list">
-        <li>Preferir preparaciones caseras y leer el etiquetado nutricional de los alimentos envasados.</li>
-        <li>Elegir productos con menor cantidad de sodio.</li>
-        <li>Evitar agregar sal durante la preparación y al servir.</li>
-        <li>Disminuir cecinas, caldos en cubo, sopas instantáneas, snacks salados, conservas, salsas comerciales y comida rápida.</li>
+      <h2 class="group-h" id="g-notas">Mis anotaciones</h2>
+      <ul class="tiles" aria-labelledby="g-notas">
+        <li class="tile"><span class="ico"><svg class="i" aria-hidden="true"><use href="#i-cal"/></svg></span><a href="registro.html#controles">Mis controles</a><p class="d">Fechas de controles y exámenes</p><svg class="i go" aria-hidden="true"><use href="#i-right"/></svg></li>
+        <li class="tile"><span class="ico"><svg class="i" aria-hidden="true"><use href="#i-note"/></svg></span><a href="registro.html#diario">Mi diario</a><p class="d">Qué comiste cada día</p><svg class="i go" aria-hidden="true"><use href="#i-right"/></svg></li>
+        <li class="tile"><span class="ico"><svg class="i" aria-hidden="true"><use href="#i-num"/></svg></span><a href="registro.html#mediciones">Presión y peso</a><p class="d">Los números tal como los mides</p><svg class="i go" aria-hidden="true"><use href="#i-right"/></svg></li>
+        <li class="tile"><span class="ico"><svg class="i" aria-hidden="true"><use href="#i-q"/></svg></span><a href="registro.html#preguntas">Preguntas</a><p class="d">Dudas para el próximo control</p><svg class="i go" aria-hidden="true"><use href="#i-right"/></svg></li>
+        <li class="tile"><span class="ico"><svg class="i" aria-hidden="true"><use href="#i-clip"/></svg></span><a href="registro.html#medico">Para el médico</a><p class="d">Hoja para imprimir o mostrar</p><svg class="i go" aria-hidden="true"><use href="#i-right"/></svg></li>
+        <li class="tile"><span class="ico"><svg class="i" aria-hidden="true"><use href="#i-share"/></svg></span><a href="registro.html#compartir">Compartir</a><p class="d">Una copia para tu familiar</p><svg class="i go" aria-hidden="true"><use href="#i-right"/></svg></li>
       </ul>
-    </section>
 
-    <section id="cocina" aria-labelledby="t-cocina">
-      <div class="head">
-        <h2 id="t-cocina">Para quien cocina</h2>
-        <button type="button" class="speak" data-target="cocina">Escuchar</button>
+      <aside class="note" aria-label="Aviso">
+        <p>Esta es una copia digital de la pauta que te entregó tu nutricionista al alta. No reemplaza sus indicaciones. Las guías para quien cocina y para leer etiquetas solo ordenan esa pauta. Si tienes dudas, o si después de nuevos exámenes te cambian la pauta, consulta a tu equipo de salud.</p>
+        <p class="small">Pauta transcrita el 18 de noviembre de 2026. Esta página no pide ni envía ningún dato tuyo.</p>
+      </aside>
+
+      <details class="install">
+        <summary>Cómo dejarla en la pantalla del teléfono</summary>
+        <p><strong>Android (Chrome):</strong> toca el menú de tres puntos y elige «Agregar a la pantalla principal» o «Instalar aplicación».</p>
+        <p><strong>iPhone (Safari):</strong> toca el botón Compartir y elige «Agregar a inicio».</p>
+        <p>Después funciona aunque no tengas internet.</p>
+      </details>
+    </div>
+
+    <!-- One section per screen -->
+    <div class="screen">
+      <div class="sections">
+
+        <section id="indicaciones" data-route aria-labelledby="t-indicaciones">
+          <nav class="crumbs" aria-label="Estás en"><ol><li><a href="#inicio"><svg class="i" aria-hidden="true"><use href="#i-home"/></svg>Mi pauta</a></li><li><span aria-current="page">Indicaciones</span></li></ol></nav>
+          <div class="sec-head">
+            <h2 id="t-indicaciones" tabindex="-1">Indicaciones generales</h2>
+            <button type="button" class="speak" data-target="indicaciones"><svg class="i" aria-hidden="true"><use href="#i-speaker"/></svg><span>Escuchar</span></button>
+          </div>
+          <div class="measure">
+            <div class="card objetivo">
+              <h3>Objetivo</h3>
+              <p>Ayudar a la recuperación de los riñones, mantener una buena hidratación y controlar la presión arterial, evitando el exceso de sal y alimentos ultraprocesados.</p>
+            </div>
+            <ul class="items">
+              <li>Realizar 4 tiempos de comida al día: desayuno, almuerzo, once y cena. Si necesita una colación, puede incorporarla según apetito y horario.</li>
+              <li>No agregar sal a las comidas en la mesa. Para dar sabor puede usar limón, ajo, cebolla, orégano, perejil, cilantro, u otras hierbas y especias sin sal.</li>
+              <li>Preferir alimentos frescos y preparados en casa.</li>
+              <li>Evitar el consumo frecuente de alimentos envasados, instantáneos y muy salados.</li>
+              <li class="key"><strong>No usar 'sal light' o sustitutos de sal con potasio.</strong></li>
+            </ul>
+          </div>
+          <nav class="pager" aria-label="Seguir leyendo">
+            <a class="next-link" href="#elegir"><span><span class="k">Siguiente</span> <span class="n">Qué elegir</span></span><svg class="i" aria-hidden="true"><use href="#i-right"/></svg></a>
+            <a class="home" href="#inicio"><svg class="i" aria-hidden="true"><use href="#i-home"/></svg><span class="k">Volver al inicio</span></a>
+          </nav>
+        </section>
+
+        <section id="elegir" data-route aria-labelledby="t-elegir">
+          <nav class="crumbs" aria-label="Estás en"><ol><li><a href="#inicio"><svg class="i" aria-hidden="true"><use href="#i-home"/></svg>Mi pauta</a></li><li><span aria-current="page">Qué elegir</span></li></ol></nav>
+          <div class="sec-head">
+            <h2 id="t-elegir" tabindex="-1">¿Qué alimentos elegir?</h2>
+            <button type="button" class="speak" data-target="elegir"><svg class="i" aria-hidden="true"><use href="#i-speaker"/></svg><span>Escuchar</span></button>
+          </div>
+          <div class="groups">
+            <article class="group">
+              <h3>Pan y cereales</h3>
+              <div class="half pref"><p class="tag"><svg class="i" aria-hidden="true"><use href="#i-yes"/></svg>Preferir</p><p>Pan con bajo contenido de sodio, avena, arroz, fideos, sémola, papa.</p></div>
+              <div class="half lim"><p class="tag"><svg class="i" aria-hidden="true"><use href="#i-less"/></svg>Limitar o evitar</p><p>Pan muy salado, sopaipillas y productos instantáneos.</p></div>
+            </article>
+            <article class="group">
+              <h3>Carnes y proteínas</h3>
+              <div class="half pref"><p class="tag"><svg class="i" aria-hidden="true"><use href="#i-yes"/></svg>Preferir</p><p>Pollo, pavo, pescado, carne magra y huevo. Preferir preparaciones caseras.</p></div>
+              <div class="half lim"><p class="tag"><svg class="i" aria-hidden="true"><use href="#i-less"/></svg>Limitar o evitar</p><p>Cecinas, vienesas, hamburguesas procesadas, nuggets y carnes muy saladas.</p></div>
+            </article>
+            <article class="group">
+              <h3>Lácteos</h3>
+              <div class="half pref"><p class="tag"><svg class="i" aria-hidden="true"><use href="#i-yes"/></svg>Preferir</p><p>Leche, yogur natural y quesillos bajos en sodio.</p></div>
+              <div class="half lim"><p class="tag"><svg class="i" aria-hidden="true"><use href="#i-less"/></svg>Limitar o evitar</p><p>Quesos muy salados y lácteos con alto contenido de sodio.</p></div>
+            </article>
+            <article class="group">
+              <h3>Verduras</h3>
+              <div class="half pref"><p class="tag"><svg class="i" aria-hidden="true"><use href="#i-yes"/></svg>Preferir</p><p>Verduras frescas, cocidas o al vapor, según tolerancia.</p></div>
+              <div class="half lim"><p class="tag"><svg class="i" aria-hidden="true"><use href="#i-less"/></svg>Limitar o evitar</p><p>Verduras en conserva y preparaciones con mucho caldo o sal.</p></div>
+            </article>
+            <article class="group">
+              <h3>Frutas</h3>
+              <div class="half pref"><p class="tag"><svg class="i" aria-hidden="true"><use href="#i-yes"/></svg>Preferir</p><p>Fruta fresca, según tolerancia.</p></div>
+              <div class="half lim"><p class="tag"><svg class="i" aria-hidden="true"><use href="#i-less"/></svg>Limitar o evitar</p><p>Frutas en conserva con almíbar y productos con mucha azúcar añadida.</p></div>
+            </article>
+            <article class="group">
+              <h3>Grasas</h3>
+              <div class="half pref"><p class="tag"><svg class="i" aria-hidden="true"><use href="#i-yes"/></svg>Preferir</p><p>Aceite de oliva o canola en pequeñas cantidades, palta y frutos secos sin sal.</p></div>
+              <div class="half lim"><p class="tag"><svg class="i" aria-hidden="true"><use href="#i-less"/></svg>Limitar o evitar</p><p>Mantequilla en exceso, frituras y frutos secos salados.</p></div>
+            </article>
+            <article class="group">
+              <h3>Bebidas</h3>
+              <div class="half pref"><p class="tag"><svg class="i" aria-hidden="true"><use href="#i-yes"/></svg>Preferir</p><p>Agua y líquidos indicados por el equipo de salud.</p></div>
+              <div class="half lim"><p class="tag"><svg class="i" aria-hidden="true"><use href="#i-less"/></svg>Limitar o evitar</p><p>Bebidas energéticas, sopas instantáneas y exceso de bebidas azucaradas.</p></div>
+            </article>
+          </div>
+          <nav class="pager" aria-label="Seguir leyendo">
+            <a href="#indicaciones"><svg class="i" aria-hidden="true"><use href="#i-left"/></svg><span><span class="k">Anterior</span> <span class="n">Indicaciones</span></span></a>
+            <a class="next-link" href="#dia"><span><span class="k">Siguiente</span> <span class="n">Un día de ejemplo</span></span><svg class="i" aria-hidden="true"><use href="#i-right"/></svg></a>
+            <a class="home" href="#inicio"><svg class="i" aria-hidden="true"><use href="#i-home"/></svg><span class="k">Volver al inicio</span></a>
+          </nav>
+        </section>
+
+        <section id="dia" data-route aria-labelledby="t-dia">
+          <nav class="crumbs" aria-label="Estás en"><ol><li><a href="#inicio"><svg class="i" aria-hidden="true"><use href="#i-home"/></svg>Mi pauta</a></li><li><span aria-current="page">Un día de ejemplo</span></li></ol></nav>
+          <div class="sec-head">
+            <h2 id="t-dia" tabindex="-1">Ejemplo de un día de alimentación</h2>
+            <button type="button" class="speak" data-target="dia"><svg class="i" aria-hidden="true"><use href="#i-speaker"/></svg><span>Escuchar</span></button>
+          </div>
+          <div class="grid">
+            <article class="card meal">
+              <h3>Desayuno</h3>
+              <p>1 taza de leche descremada o yogurt natural + 2 rebanadas de pan con bajo contenido de sodio + 1 huevo o quesillo bajo en sodio + 1 porción de fruta.</p>
+            </article>
+            <article class="card meal">
+              <h3>Almuerzo</h3>
+              <p>Ensalada de verduras sin sal agregada + 1 porción de pollo, pescado o carne magra + 1 porción de arroz, fideos o papa + 1 cucharadita de aceite + 1 fruta.</p>
+            </article>
+            <article class="card meal">
+              <h3>Once</h3>
+              <p>1 taza de leche o yogurt natural + 2 rebanadas de pan con bajo contenido de sodio + huevo, pollo desmenuzado o quesillo bajo en sodio.</p>
+            </article>
+            <article class="card meal">
+              <h3>Cena</h3>
+              <p>1 porción de pollo, pescado, huevo o carne magra + 1 porción de arroz, fideos, papa o puré + verduras. Preparar sin agregar sal.</p>
+            </article>
+            <article class="card meal">
+              <h3>Colación (si es necesaria)</h3>
+              <p>1 fruta, yogurt natural o una pequeña porción de frutos secos sin sal.</p>
+            </article>
+          </div>
+          <nav class="pager" aria-label="Seguir leyendo">
+            <a href="#elegir"><svg class="i" aria-hidden="true"><use href="#i-left"/></svg><span><span class="k">Anterior</span> <span class="n">Qué elegir</span></span></a>
+            <a class="next-link" href="#presion"><span><span class="k">Siguiente</span> <span class="n">Presión arterial</span></span><svg class="i" aria-hidden="true"><use href="#i-right"/></svg></a>
+            <a class="home" href="#inicio"><svg class="i" aria-hidden="true"><use href="#i-home"/></svg><span class="k">Volver al inicio</span></a>
+          </nav>
+        </section>
+
+        <section id="presion" data-route aria-labelledby="t-presion">
+          <nav class="crumbs" aria-label="Estás en"><ol><li><a href="#inicio"><svg class="i" aria-hidden="true"><use href="#i-home"/></svg>Mi pauta</a></li><li><span aria-current="page">Presión arterial</span></li></ol></nav>
+          <div class="sec-head">
+            <h2 id="t-presion" tabindex="-1">Para controlar la presión arterial</h2>
+            <button type="button" class="speak" data-target="presion"><svg class="i" aria-hidden="true"><use href="#i-speaker"/></svg><span>Escuchar</span></button>
+          </div>
+          <ul class="items measure">
+            <li>Preferir preparaciones caseras y leer el etiquetado nutricional de los alimentos envasados.</li>
+            <li>Elegir productos con menor cantidad de sodio.</li>
+            <li>Evitar agregar sal durante la preparación y al servir.</li>
+            <li>Disminuir cecinas, caldos en cubo, sopas instantáneas, snacks salados, conservas, salsas comerciales y comida rápida.</li>
+          </ul>
+          <nav class="pager" aria-label="Seguir leyendo">
+            <a href="#dia"><svg class="i" aria-hidden="true"><use href="#i-left"/></svg><span><span class="k">Anterior</span> <span class="n">Un día de ejemplo</span></span></a>
+            <a class="next-link" href="#cocina"><span><span class="k">Siguiente</span> <span class="n">Para quien cocina</span></span><svg class="i" aria-hidden="true"><use href="#i-right"/></svg></a>
+            <a class="home" href="#inicio"><svg class="i" aria-hidden="true"><use href="#i-home"/></svg><span class="k">Volver al inicio</span></a>
+          </nav>
+        </section>
+
+        <section id="cocina" data-route aria-labelledby="t-cocina">
+          <nav class="crumbs" aria-label="Estás en"><ol><li><a href="#inicio"><svg class="i" aria-hidden="true"><use href="#i-home"/></svg>Mi pauta</a></li><li><span aria-current="page">Para quien cocina</span></li></ol></nav>
+          <div class="sec-head">
+            <h2 id="t-cocina" tabindex="-1">Para quien cocina</h2>
+            <button type="button" class="speak" data-target="cocina"><svg class="i" aria-hidden="true"><use href="#i-speaker"/></svg><span>Escuchar</span></button>
+          </div>
+          <p class="intro">Esta parte es para el familiar que cocina o acompaña. Ordena lo que dice la pauta para usarlo en la cocina y en las compras.</p>
+          <div class="grid">
+            <article class="card">
+              <h3>Al cocinar</h3>
+              <p class="lbl">Dice tu pauta</p>
+              <ul class="quotes">
+                <li>«Evitar agregar sal durante la preparación y al servir.»</li>
+                <li>«Para dar sabor puede usar limón, ajo, cebolla, orégano, perejil, cilantro, u otras hierbas y especias sin sal.»</li>
+                <li>«No usar 'sal light' o sustitutos de sal con potasio.»</li>
+              </ul>
+            </article>
+            <article class="card">
+              <h3>Al comprar</h3>
+              <p class="lbl">Dice tu pauta</p>
+              <ul class="quotes">
+                <li>«Preferir alimentos frescos y preparados en casa.»</li>
+                <li>«Disminuir cecinas, caldos en cubo, sopas instantáneas, snacks salados, conservas, salsas comerciales y comida rápida.»</li>
+              </ul>
+              <p>Lleva la sección <a href="#elegir">Qué elegir</a> abierta en el teléfono cuando vayas a comprar.</p>
+            </article>
+            <article class="card tips">
+              <h3>Ideas para la casa</h3>
+              <p class="small">Son ideas de organización, no indicaciones de la nutricionista.</p>
+              <ul>
+                <li>Deja el salero fuera de la mesa.</li>
+                <li>Si cocinas para toda la familia, separa su porción antes de agregar sal al resto.</li>
+                <li>Ten a mano limón, ajo y hierbas. Si compras mezclas de especias, revisa en la etiqueta que no digan «sal».</li>
+                <li>Anota las dudas que aparezcan durante la semana para preguntarlas en el próximo control.</li>
+              </ul>
+            </article>
+          </div>
+          <nav class="pager" aria-label="Seguir leyendo">
+            <a href="#presion"><svg class="i" aria-hidden="true"><use href="#i-left"/></svg><span><span class="k">Anterior</span> <span class="n">Presión arterial</span></span></a>
+            <a class="next-link" href="#etiquetas"><span><span class="k">Siguiente</span> <span class="n">Leer etiquetas</span></span><svg class="i" aria-hidden="true"><use href="#i-right"/></svg></a>
+            <a class="home" href="#inicio"><svg class="i" aria-hidden="true"><use href="#i-home"/></svg><span class="k">Volver al inicio</span></a>
+          </nav>
+        </section>
+
+        <section id="etiquetas" data-route aria-labelledby="t-etiquetas">
+          <nav class="crumbs" aria-label="Estás en"><ol><li><a href="#inicio"><svg class="i" aria-hidden="true"><use href="#i-home"/></svg>Mi pauta</a></li><li><span aria-current="page">Leer etiquetas</span></li></ol></nav>
+          <div class="sec-head">
+            <h2 id="t-etiquetas" tabindex="-1">Cómo leer las etiquetas</h2>
+            <button type="button" class="speak" data-target="etiquetas"><svg class="i" aria-hidden="true"><use href="#i-speaker"/></svg><span>Escuchar</span></button>
+          </div>
+          <p class="intro">En Chile los alimentos envasados traen sellos negros de advertencia y una tabla nutricional. Así se revisan siguiendo tu pauta, que pide «Elegir productos con menor cantidad de sodio.»</p>
+          <ol class="steps grid">
+            <li class="card">
+              <h3>1. Mira el frente del envase</h3>
+              <p>Busca los sellos negros que dicen «ALTO EN». El sello <strong>«ALTO EN SODIO»</strong> marca un producto con mucha sal. Si lo tiene, compáralo con otra opción del mismo tipo.</p>
+            </li>
+            <li class="card">
+              <h3>2. Compara el sodio en la tabla nutricional</h3>
+              <p>Busca la fila «Sodio». Para comparar dos productos parecidos, usa la columna de 100 gramos (o 100 mililitros), no la de la porción, porque cada marca usa porciones distintas. Elige el que tenga menos.</p>
+            </li>
+            <li class="card">
+              <h3>3. Lee los ingredientes</h3>
+              <p>Van ordenados de mayor a menor cantidad. Fíjate si aparece «sal» entre los primeros.</p>
+              <p>La «sal light» y los sustitutos de sal suelen decir <strong>«cloruro de potasio»</strong> en sus ingredientes. Tu pauta dice: «No usar 'sal light' o sustitutos de sal con potasio.»</p>
+              <p>Si ves «cloruro de potasio» en otro producto y tienes dudas, pregúntale a tu nutricionista.</p>
+            </li>
+            <li class="card">
+              <h3>4. Cuidado con lo instantáneo</h3>
+              <p>Tu pauta dice: «Evitar el consumo frecuente de alimentos envasados, instantáneos y muy salados.»</p>
+            </li>
+          </ol>
+          <p class="small measure">Los sellos y la tabla nutricional son obligatorios en Chile (Ley 20.606). Si una etiqueta no se entiende, sácale una foto y llévala al control.</p>
+          <nav class="pager" aria-label="Seguir leyendo">
+            <a href="#cocina"><svg class="i" aria-hidden="true"><use href="#i-left"/></svg><span><span class="k">Anterior</span> <span class="n">Para quien cocina</span></span></a>
+            <a class="next-link" href="#seguimiento"><span><span class="k">Siguiente</span> <span class="n">Seguimiento</span></span><svg class="i" aria-hidden="true"><use href="#i-right"/></svg></a>
+            <a class="home" href="#inicio"><svg class="i" aria-hidden="true"><use href="#i-home"/></svg><span class="k">Volver al inicio</span></a>
+          </nav>
+        </section>
+
+        <section id="seguimiento" data-route aria-labelledby="t-seguimiento">
+          <nav class="crumbs" aria-label="Estás en"><ol><li><a href="#inicio"><svg class="i" aria-hidden="true"><use href="#i-home"/></svg>Mi pauta</a></li><li><span aria-current="page">Seguimiento</span></li></ol></nav>
+          <div class="sec-head">
+            <h2 id="t-seguimiento" tabindex="-1">Seguimiento</h2>
+            <button type="button" class="speak" data-target="seguimiento"><svg class="i" aria-hidden="true"><use href="#i-speaker"/></svg><span>Escuchar</span></button>
+          </div>
+          <div class="card measure">
+            <p>Mantener los controles indicados después del alta para revisar la función renal y ajustar la alimentación según los nuevos exámenes.</p>
+          </div>
+          <nav class="pager" aria-label="Seguir leyendo">
+            <a href="#etiquetas"><svg class="i" aria-hidden="true"><use href="#i-left"/></svg><span><span class="k">Anterior</span> <span class="n">Leer etiquetas</span></span></a>
+            <a class="next-link" href="registro.html#controles"><span><span class="k">Mis controles</span> <span class="n">Anotar fechas de controles</span></span><svg class="i" aria-hidden="true"><use href="#i-right"/></svg></a>
+            <a class="home" href="#inicio"><svg class="i" aria-hidden="true"><use href="#i-home"/></svg><span class="k">Volver al inicio</span></a>
+          </nav>
+        </section>
+
+        <p class="foot small">Copia digital de la pauta que te entregó tu nutricionista. No reemplaza sus indicaciones.</p>
       </div>
-      <p class="intro">Esta parte es para el familiar que cocina o acompaña. Ordena lo que dice la pauta para usarlo en la cocina y en las compras.</p>
 
-      <article class="card">
-        <h3>Al cocinar</h3>
-        <p class="lbl">Dice tu pauta</p>
-        <ul class="quotes">
-          <li>«Evitar agregar sal durante la preparación y al servir.»</li>
-          <li>«Para dar sabor puede usar limón, ajo, cebolla, orégano, perejil, cilantro, u otras hierbas y especias sin sal.»</li>
-          <li>«No usar 'sal light' o sustitutos de sal con potasio.»</li>
-        </ul>
-      </article>
-
-      <article class="card">
-        <h3>Al comprar</h3>
-        <p class="lbl">Dice tu pauta</p>
-        <ul class="quotes">
-          <li>«Preferir alimentos frescos y preparados en casa.»</li>
-          <li>«Disminuir cecinas, caldos en cubo, sopas instantáneas, snacks salados, conservas, salsas comerciales y comida rápida.»</li>
-        </ul>
-        <p>Lleva la sección <a href="#elegir">Qué elegir</a> abierta en el teléfono cuando vayas a comprar.</p>
-      </article>
-
-      <article class="card tips">
-        <h3>Ideas para la casa</h3>
-        <p class="small">Son ideas de organización, no indicaciones de la nutricionista.</p>
+      <nav class="siblings" aria-labelledby="sib-pauta">
+        <h2 id="sib-pauta">Tu pauta</h2>
         <ul>
-          <li>Deja el salero fuera de la mesa.</li>
-          <li>Si cocinas para toda la familia, separa su porción antes de agregar sal al resto.</li>
-          <li>Ten a mano limón, ajo y hierbas. Si compras mezclas de especias, revisa en la etiqueta que no digan «sal».</li>
-          <li>Anota las dudas que aparezcan durante la semana para preguntarlas en el próximo control.</li>
+          <li><a href="#indicaciones">Indicaciones</a></li>
+          <li><a href="#elegir">Qué elegir</a></li>
+          <li><a href="#dia">Un día de ejemplo</a></li>
+          <li><a href="#presion">Presión arterial</a></li>
+          <li><a href="#cocina">Para quien cocina</a></li>
+          <li><a href="#etiquetas">Leer etiquetas</a></li>
+          <li><a href="#seguimiento">Seguimiento</a></li>
         </ul>
-      </article>
-    </section>
-
-    <section id="etiquetas" aria-labelledby="t-etiquetas">
-      <div class="head">
-        <h2 id="t-etiquetas">Cómo leer las etiquetas</h2>
-        <button type="button" class="speak" data-target="etiquetas">Escuchar</button>
-      </div>
-      <p class="intro">En Chile los alimentos envasados traen sellos negros de advertencia y una tabla nutricional. Así se revisan siguiendo tu pauta, que pide «Elegir productos con menor cantidad de sodio.»</p>
-
-      <ol class="steps">
-        <li class="card">
-          <h3>1. Mira el frente del envase</h3>
-          <p>Busca los sellos negros que dicen «ALTO EN». El sello <strong>«ALTO EN SODIO»</strong> marca un producto con mucha sal. Si lo tiene, compáralo con otra opción del mismo tipo.</p>
-        </li>
-        <li class="card">
-          <h3>2. Compara el sodio en la tabla nutricional</h3>
-          <p>Busca la fila «Sodio». Para comparar dos productos parecidos, usa la columna de 100 gramos (o 100 mililitros), no la de la porción, porque cada marca usa porciones distintas. Elige el que tenga menos.</p>
-        </li>
-        <li class="card">
-          <h3>3. Lee los ingredientes</h3>
-          <p>Van ordenados de mayor a menor cantidad. Fíjate si aparece «sal» entre los primeros.</p>
-          <p>La «sal light» y los sustitutos de sal suelen decir <strong>«cloruro de potasio»</strong> en sus ingredientes. Tu pauta dice: «No usar 'sal light' o sustitutos de sal con potasio.»</p>
-          <p>Si ves «cloruro de potasio» en otro producto y tienes dudas, pregúntale a tu nutricionista.</p>
-        </li>
-        <li class="card">
-          <h3>4. Cuidado con lo instantáneo</h3>
-          <p>Tu pauta dice: «Evitar el consumo frecuente de alimentos envasados, instantáneos y muy salados.»</p>
-        </li>
-      </ol>
-      <p class="small">Los sellos y la tabla nutricional son obligatorios en Chile (Ley 20.606). Si una etiqueta no se entiende, sácale una foto y llévala al control.</p>
-    </section>
-
-    <section id="seguimiento" aria-labelledby="t-seguimiento">
-      <div class="head">
-        <h2 id="t-seguimiento">Seguimiento</h2>
-        <button type="button" class="speak" data-target="seguimiento">Escuchar</button>
-      </div>
-      <div class="card">
-        <p>Mantener los controles indicados después del alta para revisar la función renal y ajustar la alimentación según los nuevos exámenes.</p>
-      </div>
-    </section>
-
-    <aside class="note" aria-label="Aviso">
-      <p>Esta es una copia digital de la pauta que te entregó tu nutricionista al alta. No reemplaza sus indicaciones. Las guías para quien cocina y para leer etiquetas solo ordenan esa pauta. Si tienes dudas, o si después de nuevos exámenes te cambian la pauta, consulta a tu equipo de salud.</p>
-      <p class="small">Pauta transcrita el 18 de noviembre de 2026. Esta página no pide ni envía ningún dato tuyo.</p>
-    </aside>
-
-    <details class="install">
-      <summary>Cómo dejarla en la pantalla del teléfono</summary>
-      <p><strong>Android (Chrome):</strong> toca el menú de tres puntos y elige «Agregar a la pantalla principal» o «Instalar aplicación».</p>
-      <p><strong>iPhone (Safari):</strong> toca el botón Compartir y elige «Agregar a inicio».</p>
-      <p>Después funciona aunque no tengas internet.</p>
-    </details>
+        <h2>Mis anotaciones</h2>
+        <ul>
+          <li><a href="registro.html"><svg class="i" aria-hidden="true"><use href="#i-note"/></svg>Abrir mis anotaciones</a></li>
+        </ul>
+      </nav>
+    </div>
   </main>
 
   <script src="app.js"></script>

@@ -1,10 +1,11 @@
 // Bump VERSION whenever any cached file changes.
-var VERSION = "pauta-v3";
+var VERSION = "pauta-v4";
 var FILES = [
   "./",
   "index.html",
   "styles.css",
   "app.js",
+  "router.js",
   "registro.html",
   "registro.css",
   "registro.js",

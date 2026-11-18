@@ -36,6 +36,9 @@ jobs:
             echo "pauta-personal/registro.html no existe; se omite"
           fi
 
+      - name: Estructura responsive (check_responsive)
+        run: python3 -I tests/pauta-personal/check_responsive.py pauta-personal
+
       - name: Tests de JavaScript (node --test)
         run: |
           if [ -n "$(find tests/pauta-personal -name '*.test.mjs' -print -quit)" ]; then

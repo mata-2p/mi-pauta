@@ -24,6 +24,12 @@
   });
   applyScale();
 
+  // Offline support. Registered before the voice check so a browser without a
+  // voice still works offline.
+  if ("serviceWorker" in navigator && location.protocol !== "file:") {
+    navigator.serviceWorker.register("sw.js").catch(function () { /* online-only fallback */ });
+  }
+
   // Read aloud with the device's own voice (no network).
   var buttons = Array.prototype.slice.call(document.querySelectorAll(".speak"));
   var synth = window.speechSynthesis;
@@ -45,17 +51,29 @@
     return null;
   }
 
+  // The label lives in a <span> so the inline icon stays.
+  function setLabel(b, text) {
+    var span = b.querySelector("span");
+    if (span) span.textContent = text; else b.textContent = text;
+  }
+
   function reset() {
     buttons.forEach(function (b) {
       b.setAttribute("aria-pressed", "false");
-      b.textContent = "Escuchar";
+      setLabel(b, "Escuchar");
     });
     active = null;
   }
 
+  // Leaving a screen stops the voice.
+  document.addEventListener("routechange", function () {
+    if (active) { synth.cancel(); reset(); }
+  });
+
   function sectionText(section) {
     var clone = section.cloneNode(true);
-    Array.prototype.forEach.call(clone.querySelectorAll("button"), function (n) { n.remove(); });
+    // Buttons, breadcrumbs and the pager are controls, not content.
+    Array.prototype.forEach.call(clone.querySelectorAll("button, nav, svg"), function (n) { n.remove(); });
     // Read "+" as "más" so the meal examples sound natural.
     return clone.textContent.replace(/\s+\+\s+/g, ", más ").replace(/\s+/g, " ").trim();
   }
@@ -78,13 +96,9 @@
 
       active = btn;
       btn.setAttribute("aria-pressed", "true");
-      btn.textContent = "Detener";
+      setLabel(btn, "Detener");
       synth.speak(u);
     });
   });
 
-  // Offline support.
-  if ("serviceWorker" in navigator && location.protocol !== "file:") {
-    navigator.serviceWorker.register("sw.js").catch(function () { /* online-only fallback */ });
-  }
 })();

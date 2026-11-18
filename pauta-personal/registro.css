@@ -1,6 +1,17 @@
 /* Mis anotaciones. Builds on styles.css. */
 
-.form h3 { margin-bottom: .6rem; }
+/* Form and list side by side when the section is wide enough; the form comes
+   first in reading and focus order. */
+.two { display: grid; gap: 1.2rem; grid-template-columns: minmax(0, 1fr); align-items: start; }
+.two > * { min-width: 0; }
+.form { max-width: 40rem; margin: 0; border-color: var(--accent); }
+.form h3 { margin-bottom: .7rem; }
+/* Para el médico: the period on top, the sheet at full width below. */
+.sheet-wrap { display: grid; gap: 1.2rem; grid-template-columns: minmax(0, 1fr); }
+
+@container sections (min-width: 46rem) {
+  .two { grid-template-columns: minmax(17rem, 23rem) minmax(0, 1fr); gap: 1.6rem; }
+}
 
 .field {
   display: flex;
@@ -18,16 +29,18 @@ textarea {
   font: inherit;
   width: 100%;
   max-width: 100%;
-  min-height: max(48px, 2.6rem);
+  min-height: var(--tap);
   padding: .45rem .6rem;
   border: 2px solid var(--muted);
-  border-radius: .5rem;
+  border-radius: var(--r-field);
   background: var(--card);
   color: var(--ink);
+  caret-color: var(--accent);
 }
 input[type="date"],
-input[type="time"] { padding-inline: .35rem; }
-textarea { resize: vertical; }
+input[type="time"] { max-width: 14rem; padding-inline: .45rem; }
+input.num { max-width: 10rem; font-variant-numeric: tabular-nums; }
+textarea { resize: vertical; min-height: 5rem; }
 input[aria-invalid="true"],
 textarea[aria-invalid="true"] {
   border-width: 4px;
@@ -42,6 +55,12 @@ fieldset {
 }
 legend { padding: 0; margin-bottom: .35rem; }
 
+/* Two short fields share a row when they fit; each wraps to its own row on a
+   narrow phone or with large text. */
+.pair { display: flex; flex-wrap: wrap; gap: 0 1rem; }
+.pair > .field { flex: 1 1 8.5rem; }
+fieldset > .pair > .field:last-child { margin-bottom: 0; }
+
 /* Radio choices drawn as big buttons; the checked one carries a check mark. */
 .choices { display: flex; flex-wrap: wrap; gap: .5rem; }
 .choices legend { width: 100%; }
@@ -54,10 +73,10 @@ legend { padding: 0; margin-bottom: .35rem; }
 .choices label {
   display: inline-flex;
   align-items: center;
-  min-height: max(48px, 2.75rem);
+  min-height: var(--tap);
   padding: .35rem 1rem;
   border: 2px solid var(--accent);
-  border-radius: 2rem;
+  border-radius: var(--r-pill);
   background: var(--card);
   color: var(--accent);
   cursor: pointer;
@@ -72,13 +91,6 @@ legend { padding: 0; margin-bottom: .35rem; }
   outline-offset: 3px;
 }
 
-.pair {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
-  gap: 0 1rem;
-}
-.pair legend { grid-column: 1 / -1; }
-
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -86,28 +98,7 @@ legend { padding: 0; margin-bottom: .35rem; }
   margin: .4rem 0;
 }
 .actions.stack { flex-direction: column; align-items: stretch; }
-
-.btn {
-  font: inherit;
-  font-weight: 700;
-  font-size: .95rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  min-height: max(48px, 2.75rem);
-  padding: .4rem 1rem;
-  border: 2px solid var(--accent);
-  border-radius: .6rem;
-  background: var(--card);
-  color: var(--accent);
-  cursor: pointer;
-}
-.btn.primary {
-  background: var(--accent);
-  color: var(--accent-ink);
-}
-.btn[hidden] { display: none; }
+.btn { font-size: .95rem; }
 
 .file {
   position: absolute;
@@ -121,16 +112,16 @@ legend { padding: 0; margin-bottom: .35rem; }
 }
 
 .errors {
-  margin: 0 0 .8rem;
+  margin: 0 0 .9rem;
   padding: .7rem 1rem;
   border: 3px solid var(--ink);
-  border-left-width: 10px;
-  border-radius: .5rem;
+  border-radius: var(--r-field);
   background: var(--card);
   font-weight: 700;
 }
 .errors:empty { display: block; padding: 0; margin: 0; border: 0; }
 .errors ul { margin: .3rem 0 0; padding-left: 1.2rem; }
+main > .errors:not(:empty), main > .banner { max-width: 46rem; margin-bottom: 1.2rem; }
 
 .status { margin: .3rem 0 0; font-weight: 700; }
 .status:empty { margin: 0; }
@@ -138,34 +129,49 @@ legend { padding: 0; margin-bottom: .35rem; }
 .banner {
   padding: .8rem 1rem;
   border: 3px solid var(--accent);
-  border-radius: .6rem;
+  border-radius: var(--r-ctl);
   background: var(--card);
   font-weight: 700;
 }
-.banner a { color: var(--accent); }
 
-.entries h3 { margin: 1.1rem 0 .5rem; }
+/* Hub: the next recorded control and the last diary day, as written. */
+.next p + p { font-weight: 600; }
+
+/* Entries */
+.entries > h3, .entries > div > h3 { margin: 1.1rem 0 .5rem; color: var(--muted); font-size: 1.02rem; }
+.entries > h3:first-child, .entries > div:first-child > h3 { margin-top: 0; }
+.entry { margin-bottom: .7rem; }
 .entry h4,
 .entry h5 {
   margin: 0 0 .3rem;
   font-size: 1.05rem;
 }
-.entry p { overflow-wrap: anywhere; white-space: pre-line; }
+.entry p { margin: 0 0 .25rem; overflow-wrap: anywhere; white-space: pre-line; }
 .entry .actions { margin-top: .6rem; }
 .empty { color: var(--muted); font-style: italic; }
 .small { overflow-wrap: anywhere; }
 
+/* "Ya la pregunté": the box and its label are one large target. */
 .check {
   display: flex;
   align-items: center;
-  gap: .6rem;
-  min-height: max(48px, 2.75rem);
+  gap: .7rem;
+  min-height: var(--tap);
+  margin: .3rem 0;
 }
 .check input {
-  width: 1.6rem;
-  height: 1.6rem;
+  width: max(44px, 2.4rem);
+  height: max(44px, 2.4rem);
   margin: 0;
   flex: none;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.check label {
+  display: flex;
+  align-items: center;
+  min-height: var(--tap);
+  cursor: pointer;
 }
 
 .plain { margin: 0; padding-left: 1.2rem; }
@@ -174,11 +180,11 @@ legend { padding: 0; margin-bottom: .35rem; }
 
 /* Doctor's sheet */
 .hoja {
+  container: hoja / inline-size;
   background: var(--card);
   border: 2px solid var(--ink);
-  border-radius: .5rem;
-  padding: 1rem 1.1rem;
-  margin-bottom: 1rem;
+  border-radius: var(--r-field);
+  padding: var(--pad);
 }
 .hoja h3 { font-size: 1.2rem; }
 .hoja h4 {
@@ -192,11 +198,11 @@ legend { padding: 0; margin-bottom: .35rem; }
 .hoja li { margin-bottom: .3rem; overflow-wrap: anywhere; white-space: pre-line; }
 .hoja .lead { font-weight: 700; }
 
-.table-wrap { overflow-x: auto; }
 table {
   border-collapse: collapse;
   width: 100%;
   font-size: .95rem;
+  font-variant-numeric: tabular-nums;
 }
 th, td {
   border: 1px solid var(--muted);
@@ -206,15 +212,55 @@ th, td {
 }
 th { background: var(--bg); }
 
+/* Narrow sheet on screen: each row of the table becomes a small card with its
+   labels, so nothing needs sideways scrolling. Values stay exactly as written.
+   Paper always gets the table. */
+@media screen {
+  @container hoja (max-width: 34rem) {
+    .hoja table, .hoja tbody, .hoja tr, .hoja td { display: block; }
+    .hoja thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+    .hoja tr {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 7.5rem), 1fr));
+      gap: .15rem .9rem;
+      padding: .6rem 0;
+      border-top: 2px solid var(--line);
+    }
+    .hoja td { border: 0; padding: 0; }
+    .hoja td:first-child { grid-column: 1 / -1; font-weight: 800; }
+    .hoja td[data-label]::before {
+      content: attr(data-label);
+      display: block;
+      color: var(--muted);
+      font-weight: 700;
+      font-size: .85rem;
+    }
+  }
+}
+
 .received { margin-top: 1rem; }
 .received h3 { margin: 1.4rem 0 .5rem; }
 .received h4 { margin: 1rem 0 .5rem; }
 .received:focus { outline: none; }
 
+/* Print: only the doctor's sheet, whatever screen is open. */
 @media print {
   body.registro > *:not(main),
-  body.registro main > *:not(#medico),
-  body.registro #medico > *:not(.hoja) { display: none !important; }
+  body.registro main > *:not(.screen),
+  body.registro .screen > *:not(.sections),
+  body.registro .sections > *:not(#medico),
+  body.registro #medico > *:not(.sheet-wrap),
+  body.registro #medico .sheet-wrap > *:not(.hoja) { display: none !important; }
+  body.registro .screen,
+  body.registro #medico,
+  body.registro #medico .sheet-wrap { display: block !important; animation: none !important; }
   .hoja { border: 0; padding: 0; }
   .hoja h4, .hoja li, tr { break-inside: avoid; }
   th { background: none; }

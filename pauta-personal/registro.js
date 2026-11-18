@@ -309,15 +309,20 @@ function controlLine(c) {
   );
 }
 
+const TABLE_HEADS = ["Fecha", "Hora", "Presión, número de arriba", "Presión, número de abajo", "Peso (kg)"];
+
+// On a narrow screen the CSS stacks each row as a small card. The explicit
+// roles keep it a table for screen readers; data-label names each value.
 function measurementsTable(list) {
   if (!list.length) return empty("Sin anotaciones en este período.");
-  return el("div", { class: "table-wrap" }, el("table", null,
-    el("thead", null, el("tr", null,
-      ["Fecha", "Hora", "Presión, número de arriba", "Presión, número de abajo", "Peso (kg)"].map((h) => el("th", { scope: "col" }, h)))),
-    el("tbody", null, list.map((m) => el("tr", null,
-      el("td", null, formatDate(m.date)), el("td", null, show(m.time)),
-      el("td", null, show(m.systolic)), el("td", null, show(m.diastolic)), el("td", null, show(m.weight))))),
-  ));
+  const cell = (i, value) => el("td", { role: "cell", "data-label": i ? TABLE_HEADS[i] : null }, value);
+  return el("table", { role: "table" },
+    el("thead", { role: "rowgroup" }, el("tr", { role: "row" },
+      TABLE_HEADS.map((h) => el("th", { scope: "col", role: "columnheader" }, h)))),
+    el("tbody", { role: "rowgroup" }, list.map((m) => el("tr", { role: "row" },
+      cell(0, formatDate(m.date)), cell(1, show(m.time)),
+      cell(2, show(m.systolic)), cell(3, show(m.diastolic)), cell(4, show(m.weight))))),
+  );
 }
 
 function renderReport(target, report) {
@@ -486,6 +491,23 @@ function borrarRecibida() {
   $("estado-archivo").textContent = "Copia recibida borrada.";
 }
 
+// --- Hub: what comes next, only as recorded ---------------------------------------------
+
+function renderNext(data) {
+  const { upcoming } = orderControles(data.controles, today());
+  const days = groupDiarioByDay(data.diario);
+  const box = $("proximo");
+  if (!upcoming.length && !days.length) { box.hidden = true; return; }
+  const c = upcoming[0];
+  $("proximo-control").textContent = c
+    ? `${kindLabel(c)}: ${dateAndTime(c)}${c.where ? `. ${c.where}` : ""}`
+    : "No hay próximos controles anotados.";
+  $("proximo-diario").textContent = days.length
+    ? `Última anotación en tu diario: ${formatDate(days[0].date)}.`
+    : "Todavía no hay comidas anotadas.";
+  box.hidden = false;
+}
+
 // --- Start --------------------------------------------------------------------------
 
 function renderAll(focusId) {
@@ -494,6 +516,7 @@ function renderAll(focusId) {
   renderDiario($("lista-diario"), data, true);
   renderMediciones($("lista-mediciones"), data, true);
   renderPreguntas($("lista-preguntas"), data, true);
+  renderNext(data);
   renderSheet();
   renderLastExport();
   if (typeof focusId === "string" && $(focusId)) $(focusId).focus();
