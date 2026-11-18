@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="es-CL">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#0b5d5b">
+  <title>Mi pauta de alimentación</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Mi pauta">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip" href="#contenido">Ir al contenido</a>
+
+  <header class="top">
+    <div class="wrap">
+      <h1>Mi pauta de alimentación</h1>
+      <p class="sub">Indicaciones de tu nutricionista al alta</p>
+      <div class="size" role="group" aria-label="Tamaño de la letra">
+        <button type="button" id="smaller" aria-label="Letra más chica">A−</button>
+        <button type="button" id="bigger" aria-label="Letra más grande">A+</button>
+      </div>
+      <a class="pagelink" href="registro.html">Mis anotaciones <span aria-hidden="true">→</span></a>
+    </div>
+  </header>
+
+  <nav class="menu" aria-label="Secciones">
+    <ul class="wrap">
+      <li><a href="#indicaciones">Indicaciones</a></li>
+      <li><a href="#elegir">Qué elegir</a></li>
+      <li><a href="#dia">Un día de ejemplo</a></li>
+      <li><a href="#presion">Presión arterial</a></li>
+      <li><a href="#cocina">Para quien cocina</a></li>
+      <li><a href="#etiquetas">Leer etiquetas</a></li>
+      <li><a href="#seguimiento">Seguimiento</a></li>
+    </ul>
+  </nav>
+
+  <main id="contenido" class="wrap">
+
+    <section id="indicaciones" aria-labelledby="t-indicaciones">
+      <div class="head">
+        <h2 id="t-indicaciones">Indicaciones generales</h2>
+        <button type="button" class="speak" data-target="indicaciones">Escuchar</button>
+      </div>
+      <div class="card objetivo">
+        <h3>Objetivo</h3>
+        <p>Ayudar a la recuperación de los riñones, mantener una buena hidratación y controlar la presión arterial, evitando el exceso de sal y alimentos ultraprocesados.</p>
+      </div>
+      <ul class="list">
+        <li>Realizar 4 tiempos de comida al día: desayuno, almuerzo, once y cena. Si necesita una colación, puede incorporarla según apetito y horario.</li>
+        <li>No agregar sal a las comidas en la mesa. Para dar sabor puede usar limón, ajo, cebolla, orégano, perejil, cilantro, u otras hierbas y especias sin sal.</li>
+        <li>Preferir alimentos frescos y preparados en casa.</li>
+        <li>Evitar el consumo frecuente de alimentos envasados, instantáneos y muy salados.</li>
+        <li><strong>No usar 'sal light' o sustitutos de sal con potasio.</strong></li>
+      </ul>
+    </section>
+
+    <section id="elegir" aria-labelledby="t-elegir">
+      <div class="head">
+        <h2 id="t-elegir">¿Qué alimentos elegir?</h2>
+        <button type="button" class="speak" data-target="elegir">Escuchar</button>
+      </div>
+
+      <article class="card group">
+        <h3>Pan y cereales</h3>
+        <p class="lbl">Preferir</p>
+        <p>Pan con bajo contenido de sodio, avena, arroz, fideos, sémola, papa.</p>
+        <p class="lbl">Limitar o evitar</p>
+        <p>Pan muy salado, sopaipillas y productos instantáneos.</p>
+      </article>
+
+      <article class="card group">
+        <h3>Carnes y proteínas</h3>
+        <p class="lbl">Preferir</p>
+        <p>Pollo, pavo, pescado, carne magra y huevo. Preferir preparaciones caseras.</p>
+        <p class="lbl">Limitar o evitar</p>
+        <p>Cecinas, vienesas, hamburguesas procesadas, nuggets y carnes muy saladas.</p>
+      </article>
+
+      <article class="card group">
+        <h3>Lácteos</h3>
+        <p class="lbl">Preferir</p>
+        <p>Leche, yogur natural y quesillos bajos en sodio.</p>
+        <p class="lbl">Limitar o evitar</p>
+        <p>Quesos muy salados y lácteos con alto contenido de sodio.</p>
+      </article>
+
+      <article class="card group">
+        <h3>Verduras</h3>
+        <p class="lbl">Preferir</p>
+        <p>Verduras frescas, cocidas o al vapor, según tolerancia.</p>
+        <p class="lbl">Limitar o evitar</p>
+        <p>Verduras en conserva y preparaciones con mucho caldo o sal.</p>
+      </article>
+
+      <article class="card group">
+        <h3>Frutas</h3>
+        <p class="lbl">Preferir</p>
+        <p>Fruta fresca, según tolerancia.</p>
+        <p class="lbl">Limitar o evitar</p>
+        <p>Frutas en conserva con almíbar y productos con mucha azúcar añadida.</p>
+      </article>
+
+      <article class="card group">
+        <h3>Grasas</h3>
+        <p class="lbl">Preferir</p>
+        <p>Aceite de oliva o canola en pequeñas cantidades, palta y frutos secos sin sal.</p>
+        <p class="lbl">Limitar o evitar</p>
+        <p>Mantequilla en exceso, frituras y frutos secos salados.</p>
+      </article>
+
+      <article class="card group">
+        <h3>Bebidas</h3>
+        <p class="lbl">Preferir</p>
+        <p>Agua y líquidos indicados por el equipo de salud.</p>
+        <p class="lbl">Limitar o evitar</p>
+        <p>Bebidas energéticas, sopas instantáneas y exceso de bebidas azucaradas.</p>
+      </article>
+    </section>
+
+    <section id="dia" aria-labelledby="t-dia">
+      <div class="head">
+        <h2 id="t-dia">Ejemplo de un día de alimentación</h2>
+        <button type="button" class="speak" data-target="dia">Escuchar</button>
+      </div>
+
+      <article class="card meal">
+        <h3>Desayuno</h3>
+        <p>1 taza de leche descremada o yogurt natural + 2 rebanadas de pan con bajo contenido de sodio + 1 huevo o quesillo bajo en sodio + 1 porción de fruta.</p>
+      </article>
+      <article class="card meal">
+        <h3>Almuerzo</h3>
+        <p>Ensalada de verduras sin sal agregada + 1 porción de pollo, pescado o carne magra + 1 porción de arroz, fideos o papa + 1 cucharadita de aceite + 1 fruta.</p>
+      </article>
+      <article class="card meal">
+        <h3>Once</h3>
+        <p>1 taza de leche o yogurt natural + 2 rebanadas de pan con bajo contenido de sodio + huevo, pollo desmenuzado o quesillo bajo en sodio.</p>
+      </article>
+      <article class="card meal">
+        <h3>Cena</h3>
+        <p>1 porción de pollo, pescado, huevo o carne magra + 1 porción de arroz, fideos, papa o puré + verduras. Preparar sin agregar sal.</p>
+      </article>
+      <article class="card meal">
+        <h3>Colación (si es necesaria)</h3>
+        <p>1 fruta, yogurt natural o una pequeña porción de frutos secos sin sal.</p>
+      </article>
+    </section>
+
+    <section id="presion" aria-labelledby="t-presion">
+      <div class="head">
+        <h2 id="t-presion">Para controlar la presión arterial</h2>
+        <button type="button" class="speak" data-target="presion">Escuchar</button>
+      </div>
+      <ul class="list">
+        <li>Preferir preparaciones caseras y leer el etiquetado nutricional de los alimentos envasados.</li>
+        <li>Elegir productos con menor cantidad de sodio.</li>
+        <li>Evitar agregar sal durante la preparación y al servir.</li>
+        <li>Disminuir cecinas, caldos en cubo, sopas instantáneas, snacks salados, conservas, salsas comerciales y comida rápida.</li>
+      </ul>
+    </section>
+
+    <section id="cocina" aria-labelledby="t-cocina">
+      <div class="head">
+        <h2 id="t-cocina">Para quien cocina</h2>
+        <button type="button" class="speak" data-target="cocina">Escuchar</button>
+      </div>
+      <p class="intro">Esta parte es para el familiar que cocina o acompaña. Ordena lo que dice la pauta para usarlo en la cocina y en las compras.</p>
+
+      <article class="card">
+        <h3>Al cocinar</h3>
+        <p class="lbl">Dice tu pauta</p>
+        <ul class="quotes">
+          <li>«Evitar agregar sal durante la preparación y al servir.»</li>
+          <li>«Para dar sabor puede usar limón, ajo, cebolla, orégano, perejil, cilantro, u otras hierbas y especias sin sal.»</li>
+          <li>«No usar 'sal light' o sustitutos de sal con potasio.»</li>
+        </ul>
+      </article>
+
+      <article class="card">
+        <h3>Al comprar</h3>
+        <p class="lbl">Dice tu pauta</p>
+        <ul class="quotes">
+          <li>«Preferir alimentos frescos y preparados en casa.»</li>
+          <li>«Disminuir cecinas, caldos en cubo, sopas instantáneas, snacks salados, conservas, salsas comerciales y comida rápida.»</li>
+        </ul>
+        <p>Lleva la sección <a href="#elegir">Qué elegir</a> abierta en el teléfono cuando vayas a comprar.</p>
+      </article>
+
+      <article class="card tips">
+        <h3>Ideas para la casa</h3>
+        <p class="small">Son ideas de organización, no indicaciones de la nutricionista.</p>
+        <ul>
+          <li>Deja el salero fuera de la mesa.</li>
+          <li>Si cocinas para toda la familia, separa su porción antes de agregar sal al resto.</li>
+          <li>Ten a mano limón, ajo y hierbas. Si compras mezclas de especias, revisa en la etiqueta que no digan «sal».</li>
+          <li>Anota las dudas que aparezcan durante la semana para preguntarlas en el próximo control.</li>
+        </ul>
+      </article>
+    </section>
+
+    <section id="etiquetas" aria-labelledby="t-etiquetas">
+      <div class="head">
+        <h2 id="t-etiquetas">Cómo leer las etiquetas</h2>
+        <button type="button" class="speak" data-target="etiquetas">Escuchar</button>
+      </div>
+      <p class="intro">En Chile los alimentos envasados traen sellos negros de advertencia y una tabla nutricional. Así se revisan siguiendo tu pauta, que pide «Elegir productos con menor cantidad de sodio.»</p>
+
+      <ol class="steps">
+        <li class="card">
+          <h3>1. Mira el frente del envase</h3>
+          <p>Busca los sellos negros que dicen «ALTO EN». El sello <strong>«ALTO EN SODIO»</strong> marca un producto con mucha sal. Si lo tiene, compáralo con otra opción del mismo tipo.</p>
+        </li>
+        <li class="card">
+          <h3>2. Compara el sodio en la tabla nutricional</h3>
+          <p>Busca la fila «Sodio». Para comparar dos productos parecidos, usa la columna de 100 gramos (o 100 mililitros), no la de la porción, porque cada marca usa porciones distintas. Elige el que tenga menos.</p>
+        </li>
+        <li class="card">
+          <h3>3. Lee los ingredientes</h3>
+          <p>Van ordenados de mayor a menor cantidad. Fíjate si aparece «sal» entre los primeros.</p>
+          <p>La «sal light» y los sustitutos de sal suelen decir <strong>«cloruro de potasio»</strong> en sus ingredientes. Tu pauta dice: «No usar 'sal light' o sustitutos de sal con potasio.»</p>
+          <p>Si ves «cloruro de potasio» en otro producto y tienes dudas, pregúntale a tu nutricionista.</p>
+        </li>
+        <li class="card">
+          <h3>4. Cuidado con lo instantáneo</h3>
+          <p>Tu pauta dice: «Evitar el consumo frecuente de alimentos envasados, instantáneos y muy salados.»</p>
+        </li>
+      </ol>
+      <p class="small">Los sellos y la tabla nutricional son obligatorios en Chile (Ley 20.606). Si una etiqueta no se entiende, sácale una foto y llévala al control.</p>
+    </section>
+
+    <section id="seguimiento" aria-labelledby="t-seguimiento">
+      <div class="head">
+        <h2 id="t-seguimiento">Seguimiento</h2>
+        <button type="button" class="speak" data-target="seguimiento">Escuchar</button>
+      </div>
+      <div class="card">
+        <p>Mantener los controles indicados después del alta para revisar la función renal y ajustar la alimentación según los nuevos exámenes.</p>
+      </div>
+    </section>
+
+    <aside class="note" aria-label="Aviso">
+      <p>Esta es una copia digital de la pauta que te entregó tu nutricionista al alta. No reemplaza sus indicaciones. Las guías para quien cocina y para leer etiquetas solo ordenan esa pauta. Si tienes dudas, o si después de nuevos exámenes te cambian la pauta, consulta a tu equipo de salud.</p>
+      <p class="small">Pauta transcrita el 18 de noviembre de 2026. Esta página no pide ni envía ningún dato tuyo.</p>
+    </aside>
+
+    <details class="install">
+      <summary>Cómo dejarla en la pantalla del teléfono</summary>
+      <p><strong>Android (Chrome):</strong> toca el menú de tres puntos y elige «Agregar a la pantalla principal» o «Instalar aplicación».</p>
+      <p><strong>iPhone (Safari):</strong> toca el botón Compartir y elige «Agregar a inicio».</p>
+      <p>Después funciona aunque no tengas internet.</p>
+    </details>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

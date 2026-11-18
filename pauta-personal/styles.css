@@ -1,0 +1,289 @@
+:root {
+  --bg: #fbf8f2;
+  --card: #ffffff;
+  --ink: #161616;
+  --muted: #3d3d3d;
+  --accent: #0b5d5b;
+  --accent-ink: #ffffff;
+  --line: #c9c2b4;
+  --focus: #b34700;
+  --scale: 1;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+
+html {
+  font-size: calc(21px * var(--scale));
+  scroll-behavior: smooth;
+  scroll-padding-top: 5.5rem;
+  -webkit-text-size-adjust: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  line-height: 1.55;
+}
+
+.wrap {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.skip {
+  position: absolute;
+  left: -999px;
+}
+.skip:focus {
+  left: 1rem;
+  top: 1rem;
+  z-index: 10;
+  background: var(--card);
+  padding: .5rem 1rem;
+}
+
+:focus-visible {
+  outline: 4px solid var(--focus);
+  outline-offset: 3px;
+}
+
+/* Header */
+.top {
+  background: var(--accent);
+  color: var(--accent-ink);
+  padding: 1.25rem 0 1rem;
+}
+/* Wraps instead of overflowing: at large text sizes on a narrow phone the
+   size buttons move below the title. */
+.top .wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .25rem 1rem;
+  align-items: center;
+}
+.top h1 {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font-size: 1.5rem;
+  line-height: 1.2;
+  overflow-wrap: break-word;
+}
+.top .sub {
+  order: 1;
+  flex-basis: 100%;
+  margin: 0;
+  font-size: .95rem;
+}
+.size {
+  display: flex;
+  gap: .5rem;
+}
+.size button {
+  min-width: 3rem;
+  min-height: 3rem;
+  font: inherit;
+  font-weight: 700;
+  border: 2px solid var(--accent-ink);
+  border-radius: .6rem;
+  background: transparent;
+  color: var(--accent-ink);
+  cursor: pointer;
+}
+
+/* Link between the pauta and Mis anotaciones */
+.pagelink {
+  order: 2;
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  min-height: max(48px, 2.75rem);
+  margin-top: .6rem;
+  padding: .4rem 1.1rem;
+  border: 3px solid var(--accent-ink);
+  border-radius: .6rem;
+  background: var(--accent-ink);
+  color: var(--accent);
+  font-weight: 800;
+  font-size: 1rem;
+  text-decoration: none;
+}
+.pagelink:focus-visible { outline-color: #ffd28a; }
+
+/* Menu */
+.menu {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--bg);
+  border-bottom: 2px solid var(--line);
+}
+.menu ul {
+  list-style: none;
+  display: flex;
+  gap: .5rem;
+  overflow-x: auto;
+  padding-top: .6rem;
+  padding-bottom: .6rem;
+  margin: 0 auto;
+  scrollbar-width: none;
+}
+.menu a {
+  display: block;
+  white-space: nowrap;
+  padding: .5rem .9rem;
+  min-height: 2.75rem;
+  border: 2px solid var(--accent);
+  border-radius: 2rem;
+  color: var(--accent);
+  font-weight: 700;
+  font-size: .9rem;
+  text-decoration: none;
+  background: var(--card);
+}
+
+/* Sections */
+section {
+  padding: 1.5rem 0 .5rem;
+}
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: .5rem 1rem;
+  margin-bottom: .75rem;
+}
+h2 {
+  margin: 0;
+  font-size: 1.3rem;
+  line-height: 1.25;
+}
+h3 {
+  margin: 0 0 .35rem;
+  font-size: 1.1rem;
+}
+
+.speak {
+  font: inherit;
+  font-size: .9rem;
+  font-weight: 700;
+  min-height: 2.75rem;
+  padding: .4rem 1rem;
+  border: 2px solid var(--accent);
+  border-radius: .6rem;
+  background: var(--card);
+  color: var(--accent);
+  cursor: pointer;
+}
+.speak::before {
+  content: "";
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-right: .45em;
+  vertical-align: -.15em;
+  background: currentColor;
+  -webkit-mask: url("speaker.svg") center / contain no-repeat;
+  mask: url("speaker.svg") center / contain no-repeat;
+}
+.speak[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.speak[hidden] { display: none; }
+
+.card {
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: .9rem;
+  padding: 1rem 1.1rem;
+  margin-bottom: .9rem;
+}
+.card p { margin: 0 0 .5rem; }
+.card p:last-child { margin-bottom: 0; }
+
+.objetivo { border-color: var(--accent); }
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.list li {
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-left: 8px solid var(--accent);
+  border-radius: .6rem;
+  padding: .8rem 1rem;
+  margin-bottom: .7rem;
+}
+
+.lbl {
+  margin: .6rem 0 .1rem;
+  font-size: .85rem;
+  font-weight: 800;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.lbl:first-of-type { margin-top: .2rem; }
+
+.intro { margin: 0 0 .9rem; }
+
+.quotes,
+.tips ul {
+  margin: .2rem 0 .5rem;
+  padding-left: 1.2rem;
+}
+.quotes li,
+.tips li { margin-bottom: .4rem; }
+.tips { border-style: dashed; }
+
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.card a { color: var(--accent); font-weight: 700; }
+
+.note {
+  margin: 2rem 0 1rem;
+  padding: 1rem 1.1rem;
+  border: 2px dashed var(--muted);
+  border-radius: .9rem;
+}
+.note p { margin: 0 0 .5rem; }
+.small { font-size: .85rem; color: var(--muted); }
+
+.install {
+  margin: 0 0 3rem;
+  padding: .8rem 1.1rem;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: .9rem;
+}
+.install summary {
+  font-weight: 700;
+  cursor: pointer;
+  min-height: 2.75rem;
+  display: flex;
+  align-items: center;
+}
+
+@media print {
+  .menu, .size, .speak, .install, .skip, .pagelink { display: none !important; }
+  .top { background: none; color: var(--ink); }
+  html { font-size: 12pt; }
+  .card, .list li { break-inside: avoid; }
+}
