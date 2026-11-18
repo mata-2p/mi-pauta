@@ -194,6 +194,11 @@ def main(root):
         (r"env\(\s*safe-area-inset-", "safe-area insets"),
         (r"prefers-reduced-motion", "a prefers-reduced-motion rule"),
         (r"[\d.]dvh\b", "dynamic viewport units (dvh)"),
+        # The family member's received copy renders the same measurements
+        # table as the doctor sheet, so it must also be a container that
+        # stacks the table on narrow screens instead of scrolling sideways.
+        (r"\.received\s*\{[^}]*container\s*:", "a size container on .received (stacked table in the received copy)"),
+        (r":is\(\s*\.hoja\s*,\s*\.received\s*\)\s+tr\b", "the narrow-table rules applied to .received"),
     ]:
         if not re.search(need, css_all):
             problems.append(f"CSS: missing {what}")

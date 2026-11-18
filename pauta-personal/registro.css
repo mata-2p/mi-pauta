@@ -214,11 +214,12 @@ th { background: var(--bg); }
 
 /* Narrow sheet on screen: each row of the table becomes a small card with its
    labels, so nothing needs sideways scrolling. Values stay exactly as written.
+   The received copy shows the same table, so it gets the same treatment.
    Paper always gets the table. */
 @media screen {
   @container hoja (max-width: 34rem) {
-    .hoja table, .hoja tbody, .hoja tr, .hoja td { display: block; }
-    .hoja thead {
+    :is(.hoja, .received) :is(table, tbody, tr, td) { display: block; }
+    :is(.hoja, .received) thead {
       position: absolute;
       width: 1px;
       height: 1px;
@@ -226,16 +227,16 @@ th { background: var(--bg); }
       clip-path: inset(50%);
       white-space: nowrap;
     }
-    .hoja tr {
+    :is(.hoja, .received) tr {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(min(100%, 7.5rem), 1fr));
       gap: .15rem .9rem;
       padding: .6rem 0;
       border-top: 2px solid var(--line);
     }
-    .hoja td { border: 0; padding: 0; }
-    .hoja td:first-child { grid-column: 1 / -1; font-weight: 800; }
-    .hoja td[data-label]::before {
+    :is(.hoja, .received) td { border: 0; padding: 0; }
+    :is(.hoja, .received) td:first-child { grid-column: 1 / -1; font-weight: 800; }
+    :is(.hoja, .received) td[data-label]::before {
       content: attr(data-label);
       display: block;
       color: var(--muted);
@@ -245,7 +246,7 @@ th { background: var(--bg); }
   }
 }
 
-.received { margin-top: 1rem; }
+.received { container: hoja / inline-size; margin-top: 1rem; }
 .received h3 { margin: 1.4rem 0 .5rem; }
 .received h4 { margin: 1rem 0 .5rem; }
 .received:focus { outline: none; }
