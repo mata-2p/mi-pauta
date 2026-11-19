@@ -73,7 +73,7 @@
 }
 #error:not(:empty) { margin-bottom: .9rem; }
 /* Links in the error and the result: a full 48 px target, on their own words. */
-#error a, #frases a {
+#error a, #frases a, #revisar a {
   display: inline-flex;
   align-items: center;
   min-height: var(--tap);
@@ -88,26 +88,21 @@
 .confirmar { max-width: 46rem; }
 .confirmar > p { max-width: var(--measure); }
 .confirmar .choices { margin-bottom: 1.1rem; }
-.confirmar input[type="number"] {
-  font: inherit;
-  width: 100%;
-  max-width: 10rem;
-  min-height: var(--tap);
-  padding: .45rem .6rem;
-  border: 2px solid var(--muted);
-  border-radius: var(--r-field);
-  background: var(--card);
-  color: var(--ink);
-  caret-color: var(--accent);
-  font-variant-numeric: tabular-nums;
-}
-.confirmar input[type="number"][aria-invalid="true"] { border-width: 4px; border-style: dashed; }
-.hint { margin: 0; color: var(--muted); font-size: .9rem; font-style: italic; }
+.confirmar input.num { max-width: 10rem; }
+.confirmar fieldset > .small { margin: 0 0 .5rem; }
+/* What the reader saw, next to the two answers the person must choose. */
+.leido { width: 100%; margin: 0 0 .2rem; color: var(--muted); font-weight: 700; }
+.leido:empty { display: none; }
+/* Repeats the whole mg that will be kept; an error reads as an error by its words and a heavier border. */
+.eco { margin: 0; min-height: 1.5em; color: var(--muted); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.eco.bad { color: var(--ink); font-weight: 700; padding: .3rem .6rem; border: 3px solid var(--ink); border-radius: var(--r-field); }
 .pair > .field { flex-basis: 11rem; }
 
 /* Result: what was confirmed, then the pauta's own words. */
 .confirmado li { margin-bottom: .35rem; overflow-wrap: anywhere; }
 .pauta-dice { border: 3px solid var(--accent); }
+.revisar { border: 3px dashed var(--muted); }
+#revisar p:last-child { margin-bottom: 0; }
 .cita + .cita { margin-top: 1rem; padding-top: 1rem; border-top: 2px solid var(--line); }
 .cita blockquote { margin: 0 0 .2rem; padding: 0 0 0 .9rem; border-left: 4px solid var(--accent); }
 .cita blockquote p { margin: 0; font-size: 1.08rem; font-weight: 700; }

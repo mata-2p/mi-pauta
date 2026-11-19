@@ -11,6 +11,8 @@ const {
   isJpeg, jpegHasApp1, failureMessage, phrasesFor, readingToForm, fitSize, encodeWithin,
   PAUTA_SODIO, PAUTA_POTASIO, NEUTRAL, NOTICE_KEY, MAX_BYTES, MAX_SIDE, TIMEOUT_MS,
   SI, NO, ILEGIBLE, UI_COPY,
+  UNREAD_SODIO, UNREAD_POTASIO, CRITICAL, parseSodium, formatMg, sodiumEcho, sodiumError,
+  readLine, preChecked, missingChoices,
 } = core;
 
 const read = (p) => readFileSync(here(p), "utf8");
@@ -182,11 +184,11 @@ test("phrasesFor: every sí phrase is quoted exactly from the pauta and points a
   }
 });
 
-test("phrasesFor: no, no se pudo leer, other seals or unknown values give only the neutral line", () => {
+test("phrasesFor: confirmed no, other seals or unknown values give only the neutral line", () => {
   const cases = [
     confirmed(),
-    confirmed({ alto_en_sodio: ILEGIBLE, cloruro_de_potasio: ILEGIBLE }),
     confirmed({ alto_en_azucares: SI, alto_en_grasas_saturadas: SI, alto_en_calorias: SI }),
+    confirmed({ sodio_mg_100: null, sodio_mg_porcion: null }),
     confirmed({ alto_en_sodio: "Sí", cloruro_de_potasio: "si" }),
     {},
     undefined,
@@ -200,11 +202,202 @@ test("phrasesFor: no, no se pudo leer, other seals or unknown values give only t
   assert.equal(NEUTRAL, "Tu pauta no tiene una indicación sobre esto. Consulta con tu equipo tratante si tienes dudas.");
 });
 
-test("phrasesFor never looks at the sodium numbers", () => {
-  const a = phrasesFor({ ...confirmed(), sodio_mg_100: "5000", sodio_mg_porcion: "2000" });
-  const b = phrasesFor({ ...confirmed(), sodio_mg_100: "", sodio_mg_porcion: "1" });
-  assert.deepEqual(a, b);
-  assert.deepEqual(a.map((p) => p.text), [NEUTRAL]);
+// S22 (a): three cases per field. An unread field is never treated as «no».
+
+test("S22a: the two unread lines are calm, name what to check, and are exact", () => {
+  assert.equal(UNREAD_SODIO, "No se pudo leer si tiene el sello «ALTO EN SODIO». Revísalo en el envase.");
+  assert.equal(UNREAD_POTASIO, "No se pudo leer la lista de ingredientes completa. Revisa en el envase si dice «cloruro de potasio».");
+  assert.ok(UI_COPY.includes(UNREAD_SODIO) && UI_COPY.includes(UNREAD_POTASIO));
+});
+
+test("S22a: «ALTO EN SODIO» no se pudo leer gives the sodium check line, not the neutral line", () => {
+  const out = phrasesFor(confirmed({ alto_en_sodio: ILEGIBLE }));
+  assert.deepEqual(out.map((p) => p.text), [UNREAD_SODIO]);
+  assert.equal(out[0].pauta, false);
+  assert.equal(out[0].kind, "revisar");
+});
+
+test("S22a: cloruro de potasio no se pudo leer gives the ingredients check line, not the neutral line", () => {
+  const out = phrasesFor(confirmed({ cloruro_de_potasio: ILEGIBLE }));
+  assert.deepEqual(out.map((p) => p.text), [UNREAD_POTASIO]);
+  assert.equal(out[0].kind, "revisar");
+});
+
+test("S22a: both unread give both check lines and no neutral line", () => {
+  const out = phrasesFor(confirmed({ alto_en_sodio: ILEGIBLE, cloruro_de_potasio: ILEGIBLE }));
+  assert.deepEqual(out.map((p) => p.text), [UNREAD_SODIO, UNREAD_POTASIO]);
+  assert.ok(!out.some((p) => p.text === NEUTRAL));
+});
+
+test("S22a: confirmed no and no se pudo leer never give the same result", () => {
+  for (const key of CRITICAL) {
+    const no = phrasesFor(confirmed({ [key]: NO }));
+    const unread = phrasesFor(confirmed({ [key]: ILEGIBLE }));
+    assert.notDeepEqual(no, unread, key);
+  }
+  assert.deepEqual(CRITICAL, ["alto_en_sodio", "cloruro_de_potasio"]);
+});
+
+test("S22a: a sí in one field and an unread other field show the pauta sentence and the check line", () => {
+  assert.deepEqual(phrasesFor(confirmed({ alto_en_sodio: SI, cloruro_de_potasio: ILEGIBLE })).map((p) => p.text),
+    [PAUTA_SODIO, UNREAD_POTASIO]);
+  assert.deepEqual(phrasesFor(confirmed({ alto_en_sodio: ILEGIBLE, cloruro_de_potasio: SI })).map((p) => p.text),
+    [UNREAD_SODIO, PAUTA_POTASIO]);
+});
+
+// S22 (b): the sodium sentence also follows a confirmed sodium number, never its size.
+
+test("S22b: a confirmed sodium number shows the pauta's sodium sentence", () => {
+  for (const over of [{ sodio_mg_100: 1250 }, { sodio_mg_porcion: 89 }, { sodio_mg_100: 0 }, { sodio_mg_100: 3, sodio_mg_porcion: 1 }]) {
+    const out = phrasesFor(confirmed(over));
+    assert.deepEqual(out.map((p) => p.text), [PAUTA_SODIO], JSON.stringify(over));
+    assert.equal(out[0].pauta, true);
+    assert.equal(out[0].href, "index.html#presion");
+  }
+});
+
+test("S22b: seal sí and a sodium number show the sodium sentence once", () => {
+  const out = phrasesFor(confirmed({ alto_en_sodio: SI, sodio_mg_100: 820, sodio_mg_porcion: 120 }));
+  assert.deepEqual(out.map((p) => p.text), [PAUTA_SODIO]);
+});
+
+test("S22b: the sodium number is never compared: any confirmed amount gives the same result", () => {
+  const results = [0, 1, 89, 1250, 18200, 99999].map((n) => phrasesFor(confirmed({ sodio_mg_100: n })));
+  for (const r of results) assert.deepEqual(r, results[0]);
+});
+
+test("S22b: no sodium number (null, empty, or not a whole number) does not count as confirmed", () => {
+  for (const v of [null, undefined, "", "1250", -1, 12.5, NaN]) {
+    assert.deepEqual(phrasesFor(confirmed({ sodio_mg_100: v, sodio_mg_porcion: v })).map((p) => p.text), [NEUTRAL], String(v));
+  }
+});
+
+test("S22b: unread seal plus a confirmed sodium number shows the pauta sentence and the seal check line", () => {
+  assert.deepEqual(phrasesFor(confirmed({ alto_en_sodio: ILEGIBLE, sodio_mg_porcion: 450 })).map((p) => p.text),
+    [PAUTA_SODIO, UNREAD_SODIO]);
+});
+
+// S22 (c): sodium is whole milligrams; «1.250» is never 1,25.
+
+test("S22c: parseSodium reads whole mg with dots or spaces as thousand groups", () => {
+  for (const [text, value] of [
+    ["1250", 1250], ["1.250", 1250], ["1 250", 1250], [" 1.250 ", 1250], ["0", 0], ["89", 89],
+    ["18.200", 18200], ["1.234.567", 1234567], ["1 234 567", 1234567], ["1 250", 1250],
+  ]) {
+    assert.deepEqual(parseSodium(text), { ok: true, value }, JSON.stringify(text));
+  }
+});
+
+test("S22c: parseSodium: empty means no se pudo leer (null), never 0", () => {
+  for (const text of ["", "   ", null, undefined]) assert.deepEqual(parseSodium(text), { ok: true, value: null });
+});
+
+test("S22c: parseSodium rejects a comma, a decimal and malformed groups", () => {
+  for (const text of ["1,25", "1,250", "12,5", "1.25", "12.5", "1.2500", "1250.", ".250", "1..250", "1. 250",
+    "1.250 300", "-5", "+5", "5 mg", "mil", "1e3", "0x10", "12 50", "99999999999999999999"]) {
+    assert.deepEqual(parseSodium(text), { ok: false }, JSON.stringify(text));
+  }
+});
+
+test("S22c: formatMg and sodiumEcho repeat the value in es-CL", () => {
+  assert.equal(formatMg(1250), "1.250");
+  assert.equal(formatMg(0), "0");
+  assert.equal(formatMg(820), "820");
+  assert.equal(formatMg(1234567), "1.234.567");
+  assert.equal(sodiumEcho(1250), "Se entiende como: 1.250 mg");
+  assert.equal(sodiumEcho(null), "Se entiende como: no se pudo leer");
+});
+
+test("S22c: sodiumError asks for the whole number of mg and names the field", () => {
+  const msg = sodiumError("Sodio por porción");
+  assert.equal(msg, "En «Sodio por porción» escribe los miligramos como número entero, sin coma ni decimales. Por ejemplo: 1250 o 1.250.");
+  assert.ok(UI_COPY.some((t) => t.includes("escribe los miligramos como número entero")));
+});
+
+// S22 (d): the two critical answers are never pre-checked.
+
+test("S22d: preChecked keeps the reader's answer for the other seals only", () => {
+  const values = readingToForm(reading());
+  const checked = preChecked(values);
+  assert.deepEqual(checked, { alto_en_azucares: NO, alto_en_grasas_saturadas: ILEGIBLE, alto_en_calorias: NO });
+  for (const key of CRITICAL) assert.ok(!(key in checked), key);
+});
+
+test("S22d: readLine says what was read, in the three cases", () => {
+  assert.equal(readLine(SI), "Se leyó: sí");
+  assert.equal(readLine(NO), "Se leyó: no");
+  assert.equal(readLine(ILEGIBLE), "Se leyó: no se pudo leer");
+  assert.equal(readLine("quizás"), "");
+});
+
+test("S22d: missingChoices blocks confirmation until both critical answers are chosen", () => {
+  const others = { alto_en_azucares: NO, alto_en_grasas_saturadas: NO, alto_en_calorias: NO };
+  const none = missingChoices(others);
+  assert.deepEqual(none.map((m) => m.key), CRITICAL);
+  assert.equal(none[0].message, "Toca tu respuesta para el sello «ALTO EN SODIO»: sí, no o no se pudo leer.");
+  assert.equal(none[1].message, "Toca tu respuesta para «cloruro de potasio» en los ingredientes: sí, no o no se pudo leer.");
+  assert.deepEqual(missingChoices({ ...others, alto_en_sodio: NO }).map((m) => m.key), ["cloruro_de_potasio"]);
+  assert.deepEqual(missingChoices({ ...others, alto_en_sodio: ILEGIBLE, cloruro_de_potasio: SI }), []);
+  assert.deepEqual(missingChoices({ ...others, alto_en_sodio: "x", cloruro_de_potasio: SI }).map((m) => m.key), ["alto_en_sodio"]);
+  // The other seals keep their old message.
+  assert.deepEqual(missingChoices({ alto_en_sodio: NO, cloruro_de_potasio: NO }).map((m) => m.message),
+    ["Elige una respuesta para «ALTO EN AZÚCARES».", "Elige una respuesta para «ALTO EN GRASAS SATURADAS».", "Elige una respuesta para «ALTO EN CALORÍAS»."]);
+});
+
+test("S22d: etiqueta.html never pre-checks a radio and says why confirm waits", () => {
+  const html = read("etiqueta.html");
+  assert.ok(!/<input[^>]*type="radio"[^>]*\bchecked\b/.test(html));
+  assert.match(html, /id="leido-alto_en_sodio"/);
+  assert.match(html, /id="leido-cloruro_de_potasio"/);
+});
+
+// S22 (c), markup: whole mg in a text field with a numeric keyboard.
+
+test("S22c: the sodium fields are text with inputmode numeric, each with its own echo", () => {
+  const html = read("etiqueta.html");
+  assert.ok(!html.includes('type="number"'));
+  for (const id of ["sodio-100", "sodio-porcion"]) {
+    const tag = html.match(new RegExp(`<input id="${id}"[^>]*>`))?.[0] || "";
+    assert.match(tag, /type="text"/, id);
+    assert.match(tag, /inputmode="numeric"/, id);
+    assert.match(tag, /aria-describedby="eco-[^"]+/, id);
+  }
+});
+
+// S22 (e): privacy wording says what the code does.
+
+test("S22e: index.html no longer claims nothing is sent, and names the one photo that is", () => {
+  const text = htmlText(read("index.html"));
+  assert.ok(!text.includes("Esta página no pide ni envía ningún dato tuyo."));
+  assert.ok(text.includes("Lo que anotas queda solo en este teléfono. Solo «Leer una etiqueta» envía algo: la foto que tú eliges, sin metadatos, y esa foto no se guarda."));
+});
+
+test("S22e: the label notice names the path of the photo and the key is v2", () => {
+  const text = htmlText(read("etiqueta.html"));
+  assert.ok(text.includes("La foto que eliges sale del teléfono sin metadatos y pasa por Cloudflare y OpenRouter hasta un modelo de Google, fuera de Chile. Se usa solo para leer la etiqueta y no se guarda."));
+  assert.equal(NOTICE_KEY, "etiqueta-aviso-v2");
+});
+
+// One live region per kind, never role=alert and aria-live together.
+
+test("etiqueta.html: no region carries both role=alert or status and aria-live", () => {
+  const html = read("etiqueta.html");
+  for (const tag of html.match(/<[a-z]+\b[^>]*>/g)) {
+    assert.ok(!(/role="(alert|status)"/.test(tag) && /aria-live=/.test(tag)), tag);
+  }
+});
+
+// New copy: none of the judging words.
+
+test("S22: the new copy has no judging words (ALTO only inside the literal seal)", () => {
+  const copy = [UNREAD_SODIO, UNREAD_POTASIO, sodiumError("Sodio por porción"), sodiumEcho(1250), sodiumEcho(null),
+    readLine(SI), readLine(NO), readLine(ILEGIBLE), ...missingChoices({}).map((m) => m.message),
+    "Lo que anotas queda solo en este teléfono. Solo «Leer una etiqueta» envía algo: la foto que tú eliges, sin metadatos, y esa foto no se guarda.",
+    htmlText(read("etiqueta.html"))].join(" \n ");
+  const low = copy.replace(/«ALTO EN [A-ZÁÉÍÓÚ ]+»/g, "«sello»").toLowerCase();
+  for (const w of ["puedes comer", "normal", "alto", "bajo", "riesgo", "elevad", "peligro", "exceso", "prohibido"]) {
+    assert.ok(!new RegExp(`\\b${w}`).test(low), w);
+  }
 });
 
 // --- Reading -> form ------------------------------------------------------------
@@ -222,10 +415,14 @@ test("readingToForm prefills each answer; null sodium stays empty, never 0", () 
   });
 });
 
-test("readingToForm keeps a printed 0 and decimals as numbers", () => {
+test("readingToForm writes sodium as printed in Chile: thousands with a dot, a decimal with a comma", () => {
   const f = readingToForm(reading({ sodio_mg_100: 0, sodio_mg_porcion: 12.5 }));
   assert.equal(f.sodio_mg_100, "0");
-  assert.equal(f.sodio_mg_porcion, "12.5");
+  assert.equal(f.sodio_mg_porcion, "12,5");
+  assert.equal(readingToForm(reading({ sodio_mg_100: 1250 })).sodio_mg_100, "1.250");
+  // What the form shows reads back as the same whole number; a decimal must be fixed by the person.
+  assert.deepEqual(parseSodium(readingToForm(reading({ sodio_mg_100: 18200 })).sodio_mg_100), { ok: true, value: 18200 });
+  assert.deepEqual(parseSodium(f.sodio_mg_porcion), { ok: false });
 });
 
 test("readingToForm rejects an answer that does not match the reader's shape", () => {
@@ -293,11 +490,17 @@ test("UI_COPY includes every message the screen can show", () => {
   }
 });
 
-test("the notice key is new and is not one of the registro keys", async () => {
+test("the notice key is v2 (shown again after the privacy change) and is not one of the registro keys", async () => {
+  assert.equal(NOTICE_KEY, "etiqueta-aviso-v2");
   const reg = await import(here("registro-core.js"));
   assert.equal(typeof NOTICE_KEY, "string");
   assert.ok(NOTICE_KEY.startsWith("etiqueta-"));
   for (const k of [reg.STORAGE_KEY, reg.RECEIVED_KEY, reg.BACKUP_KEY, "registro-prueba", "pauta-scale"]) {
     assert.notEqual(NOTICE_KEY, k);
   }
+});
+
+test("S22c: parseSodium rejects full-width digits, exponent, sign and comma groups", () => {
+  for (const t of ["２５０", "1e3", "+5", "-5", "1,250", "12.5.0", "1.2500"]) assert.deepEqual(parseSodium(t), { ok: false }, t);
+  assert.deepEqual(parseSodium("001250"), { ok: true, value: 1250 });
 });

@@ -2,8 +2,9 @@
 // The photo is re-encoded here without metadata, sent once to the label reader and
 // dropped. What the person confirms is shown back and never stored.
 import {
-  READER_URL, NOTICE_KEY, TIMEOUT_MS, SEALS, POTASSIUM, SODIUM, SI, NO, ILEGIBLE,
+  READER_URL, NOTICE_KEY, TIMEOUT_MS, SEALS, POTASSIUM, SODIUM, SI, NO, ILEGIBLE, CRITICAL,
   PREPARE_FAILED, phrasesFor, failureMessage, readingToForm, fitSize, encodeWithin, jpegHasApp1,
+  parseSodium, formatMg, sodiumEcho, sodiumError, readLine, preChecked, missingChoices,
 } from "./etiqueta-core.js";
 
 const $ = (id) => document.getElementById(id);
@@ -227,36 +228,65 @@ async function send() {
 
 const ANSWER_TEXT = { [SI]: "Sí", [NO]: "No", [ILEGIBLE]: "No se pudo leer" };
 const sodiumInput = (key) => form.elements.namedItem(key);
-const hintFor = (key) => $(key === "sodio_mg_100" ? "h-sodio-100" : "h-sodio-porcion");
+const echoFor = (key) => $(key === "sodio_mg_100" ? "eco-sodio-100" : "eco-sodio-porcion");
+const labelFor = (key) => SODIUM.find((s) => s.key === key).label;
+
+/**
+ * Repeats under a sodium field the whole mg that will be kept. A value that is not
+ * a whole number shows its error once the field was left (strict) or was already
+ * marked, so typing «1.2» on the way to «1.250» does not flash an error.
+ */
+function updateEcho(key, strict) {
+  const input = sodiumInput(key);
+  const out = echoFor(key);
+  const parsed = parseSodium(input.value);
+  if (parsed.ok) {
+    input.removeAttribute("aria-invalid");
+    out.classList.remove("bad");
+    out.textContent = sodiumEcho(parsed.value);
+  } else if (strict || input.getAttribute("aria-invalid") === "true") {
+    input.setAttribute("aria-invalid", "true");
+    out.classList.add("bad");
+    out.textContent = sodiumError(labelFor(key));
+  } else {
+    out.classList.remove("bad");
+    out.textContent = "";
+  }
+  return parsed;
+}
 
 function fillForm(values) {
   form.reset();
+  // The two critical answers are never pre-checked: the reading is only shown.
+  const checked = preChecked(values);
   for (const { key } of [...SEALS, POTASSIUM]) {
-    for (const r of form.querySelectorAll(`input[name="${key}"]`)) r.checked = r.value === values[key];
+    for (const r of form.querySelectorAll(`input[name="${key}"]`)) {
+      r.checked = r.value === checked[key];
+      r.removeAttribute("aria-invalid");
+    }
   }
+  for (const key of CRITICAL) $(`leido-${key}`).textContent = readLine(values[key]);
   for (const { key } of SODIUM) {
-    const input = sodiumInput(key);
-    input.value = values[key];
-    input.removeAttribute("aria-invalid");
-    hintFor(key).hidden = values[key] !== "";
+    sodiumInput(key).value = values[key];
+    sodiumInput(key).removeAttribute("aria-invalid");
+    updateEcho(key, values[key] !== "");
   }
   $("e-confirmar").replaceChildren();
 }
 
 function readForm() {
   const values = {};
-  const errors = [];
-  for (const { key, label } of [...SEALS, POTASSIUM]) {
+  for (const { key } of [...SEALS, POTASSIUM]) {
     const checked = form.querySelector(`input[name="${key}"]:checked`);
     if (checked) values[key] = checked.value;
-    else errors.push({ input: form.querySelector(`input[name="${key}"]`), message: `Elige una respuesta para ${label}.` });
   }
+  const errors = missingChoices(values).map(({ key, message }) => ({
+    input: form.querySelector(`input[name="${key}"]`), message,
+  }));
   for (const { key, label } of SODIUM) {
-    const input = sodiumInput(key);
-    input.removeAttribute("aria-invalid");
-    const bad = input.validity.badInput || (input.value !== "" && !(Number(input.value) >= 0));
-    if (bad) errors.push({ input, message: `En «${label}» escribe solo el número, o déjalo vacío si no se pudo leer.` });
-    values[key] = input.value;
+    const parsed = updateEcho(key, true);
+    if (parsed.ok) values[key] = parsed.value;
+    else errors.push({ input: sodiumInput(key), message: sodiumError(label) });
   }
   return { values, errors };
 }
@@ -265,18 +295,31 @@ function renderResult(values) {
   const items = [
     ...SEALS.map(({ key, label }) => `Sello ${label}: ${ANSWER_TEXT[values[key]]}`),
     `${POTASSIUM.label}: ${ANSWER_TEXT[values[POTASSIUM.key]]}`,
-    ...SODIUM.map(({ key, label }) => `${label}: ${values[key] === "" ? ILEGIBLE : `${values[key]} miligramos`}`),
+    ...SODIUM.map(({ key, label }) => `${label}: ${values[key] === null ? ILEGIBLE : `${formatMg(values[key])} miligramos`}`),
   ];
   $("confirmado").replaceChildren(...items.map((t) => el("li", null, t)));
 
   const phrases = phrasesFor(values);
-  $("frases").replaceChildren(...phrases.map((p) => (p.pauta
+  const said = phrases.filter((p) => p.kind !== "revisar");
+  const check = phrases.filter((p) => p.kind === "revisar");
+  $("frases").replaceChildren(...said.map((p) => (p.pauta
     ? el("div", { class: "cita" },
       el("blockquote", null, el("p", null, `«${p.text}»`)),
       el("p", null, el("a", { href: p.href }, "Ver en tu pauta")))
     : el("div", null,
       el("p", null, p.text),
       el("p", null, el("a", { href: p.href }, "Abrir tu pauta"))))));
+  $("pauta-card").hidden = said.length === 0;
+  $("revisar").replaceChildren(...check.map((p) => el("p", null, p.text)));
+  if (check.length) {
+    $("revisar").append(el("p", null, el("a", { href: check[0].href }, "Cómo leer las etiquetas")));
+  }
+  $("revisar-card").hidden = check.length === 0;
+}
+
+for (const { key } of SODIUM) {
+  sodiumInput(key).addEventListener("input", () => updateEcho(key, false));
+  sodiumInput(key).addEventListener("change", () => updateEcho(key, true));
 }
 
 form.addEventListener("submit", (ev) => {

@@ -3,7 +3,8 @@ never judges what the person wrote, and loads nothing from outside the site.
 
 It also checks the «Leer una etiqueta» page next to it (etiqueta.html): no
 judging words, a label on every control, nothing loaded from outside the site,
-and the label reader as the only place its scripts talk to over the network.
+the label reader as the only place its scripts talk to over the network, and
+each live region marked once (role=alert or role=status, or aria-live, never both).
 
 And «Mi despensa» (despensa.html): no judging words, a label on every control,
 nothing loaded from outside the site, no network at all in its scripts, and
@@ -51,6 +52,7 @@ OTHER_NETWORK = re.compile(r"XMLHttpRequest|WebSocket|EventSource|sendBeacon|imp
 class Page(HTMLParser):
     def __init__(self):
         super().__init__()
+        self.double_live = []
         self.parts = []
         self.skip = 0
         self.urls = []
@@ -63,6 +65,8 @@ class Page(HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         a = dict(attrs)
+        if a.get("role") in ("alert", "status") and "aria-live" in a:
+            self.double_live.append(a.get("id") or tag)
         if tag in ("script", "style"):
             self.skip += 1
         for key in ("src", "href"):
@@ -120,6 +124,8 @@ def check_label_page(base, registro_page):
     for c in page.controls:
         if not c or c not in page.label_for:
             problems.append(f"LABEL PAGE: FIELD WITHOUT LABEL: {c}")
+    for r in page.double_live:
+        problems.append(f"LABEL PAGE: LIVE REGION with both role and aria-live: {r}")
     urls = [(name, u) for name, src in sources.items() for u in URL_IN_JS.findall(src)]
     if not urls:
         problems.append("LABEL PAGE: no label reader address in its scripts")

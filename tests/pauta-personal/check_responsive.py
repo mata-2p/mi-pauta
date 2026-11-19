@@ -12,7 +12,8 @@ checks what can be checked without a browser:
 - the CSS uses fluid type, safe-area insets and reduced motion, and draws no
   icons from image files (icons are inline SVG);
 - the service worker caches every file of the page under a new version, and
-  leaves requests to other origins (the label reader) to the network only;
+  leaves requests to other origins (the label reader) to the network only,
+  and only puts correct answers (status 200, this site's own) in the cache;
 - the «Leer una etiqueta» and «Mi despensa» pages (one screen, no hub) have
   the same viewport, breadcrumbs and «Volver al inicio» link, and both hubs or
   navs link to them.
@@ -28,7 +29,7 @@ PAGES = ["index.html", "registro.html"]
 # Pages with a single screen and no hub of tiles.
 SINGLE = ["etiqueta.html", "despensa.html"]
 CSS = ["styles.css", "registro.css", "etiqueta.css", "despensa.css"]
-VERSION = "pauta-v6"
+VERSION = "pauta-v7"
 HUB = "inicio"
 
 # The largest text step (A+) is 1.5 x 19 px. A width in rem or em that is wider
@@ -258,6 +259,10 @@ def main(root):
         problems.append("sw.js: requests to other origins are not left to the network")
     if not re.search(r'method\s*!==\s*"GET"\)\s*return', before):
         problems.append("sw.js: non-GET requests are not left to the network")
+    # An error page, a partial or an opaque answer must never replace a good offline copy.
+    for need, what in [(r"\.ok\b", "res.ok"), (r"status\s*===\s*200", "status === 200"), (r'type\s*===\s*"basic"', 'type === "basic"')]:
+        if not re.search(need, sw):
+            problems.append(f"sw.js: caches answers without checking {what}")
     cached = set(re.findall(r'"([^"]+\.[a-z]+)"', sw.split("FILES", 1)[1].split("]", 1)[0])) if "FILES" in sw else set()
     files = sorted(f for f in os.listdir(root) if os.path.isfile(os.path.join(root, f)) and f != "sw.js")
     uncached = [f for f in files if f not in cached]

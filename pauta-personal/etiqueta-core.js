@@ -7,7 +7,8 @@
 export const READER_URL = "https://mi-pauta-etiquetas.matiasjbarriah.workers.dev/leer";
 
 // Remembers that the notice was read. Separate from every registro key.
-export const NOTICE_KEY = "etiqueta-aviso-v1";
+// v2: the notice now names where the photo goes, so it is shown once again.
+export const NOTICE_KEY = "etiqueta-aviso-v2";
 
 export const MAX_SIDE = 1600;
 export const MAX_BYTES = 1_400_000;
@@ -31,6 +32,10 @@ export const SODIUM = [
   { key: "sodio_mg_porcion", label: "Sodio por porción" },
 ];
 
+// The two answers the person must choose actively: they are never pre-checked
+// from the reading, only shown as «Se leyó: …» next to the choices.
+export const CRITICAL = ["alto_en_sodio", POTASSIUM.key];
+
 // --- Sentences of the pauta (index.html), copied word for word -------------------
 
 /** index.html, «Para controlar la presión arterial» (section #presion). */
@@ -39,18 +44,103 @@ export const PAUTA_SODIO = "Elegir productos con menor cantidad de sodio.";
 export const PAUTA_POTASIO = "No usar 'sal light' o sustitutos de sal con potasio.";
 export const NEUTRAL = "Tu pauta no tiene una indicación sobre esto. Consulta con tu equipo tratante si tienes dudas.";
 
+// When a field could not be read: what to check on the package. Never a «no».
+export const UNREAD_SODIO = "No se pudo leer si tiene el sello «ALTO EN SODIO». Revísalo en el envase.";
+export const UNREAD_POTASIO = "No se pudo leer la lista de ingredientes completa. Revisa en el envase si dice «cloruro de potasio».";
+
+/** A confirmed sodium amount: a whole number of mg. Its size is never looked at. */
+const isConfirmedMg = (v) => typeof v === "number" && Number.isSafeInteger(v) && v >= 0;
+
 /**
- * What to show after the person confirms. Only the two pauta sentences, and only
- * when the person confirmed «sí»; otherwise the neutral line. The sodium numbers
- * are never read here.
+ * What to show after the person confirms. Three cases per field:
+ * - confirmed «sí» (or, for sodium, any confirmed sodium number): the pauta sentence, once;
+ * - «no se pudo leer»: a calm line naming what to check on the package;
+ * - confirmed «no»: nothing for that field.
+ * The neutral line only when nothing else applies. The sodium numbers are never
+ * compared with anything: only whether one was confirmed.
  */
 export function phrasesFor(confirmed) {
   const c = confirmed || {};
   const out = [];
-  if (c.alto_en_sodio === SI) out.push({ text: PAUTA_SODIO, pauta: true, href: "index.html#presion" });
-  if (c.cloruro_de_potasio === SI) out.push({ text: PAUTA_POTASIO, pauta: true, href: "index.html#indicaciones" });
-  if (!out.length) out.push({ text: NEUTRAL, pauta: false, href: "index.html#inicio" });
+  if (c.alto_en_sodio === SI || SODIUM.some(({ key }) => isConfirmedMg(c[key]))) {
+    out.push({ text: PAUTA_SODIO, pauta: true, kind: "pauta", href: "index.html#presion" });
+  }
+  if (c.alto_en_sodio === ILEGIBLE) out.push({ text: UNREAD_SODIO, pauta: false, kind: "revisar", href: "index.html#etiquetas" });
+  if (c.cloruro_de_potasio === SI) out.push({ text: PAUTA_POTASIO, pauta: true, kind: "pauta", href: "index.html#indicaciones" });
+  if (c.cloruro_de_potasio === ILEGIBLE) out.push({ text: UNREAD_POTASIO, pauta: false, kind: "revisar", href: "index.html#etiquetas" });
+  if (!out.length) out.push({ text: NEUTRAL, pauta: false, kind: "neutral", href: "index.html#inicio" });
   return out;
+}
+
+// --- Sodium: whole milligrams, as printed in Chile ------------------------------
+
+const GROUPED = /^\d{1,3}(?:([. \u00a0\u202f])\d{3})(?:\1\d{3})*$/;
+
+/**
+ * Reads a sodium field as whole mg. «1250», «1.250» and «1 250» are 1250: a dot or a
+ * space only separates groups of three digits. A comma, a decimal or a broken group
+ * («1.25») is { ok: false }, so «1.250» is never taken as 1,25. Empty is
+ * { ok: true, value: null }: not read, never 0.
+ */
+export function parseSodium(text) {
+  const t = String(text ?? "").trim();
+  if (t === "") return { ok: true, value: null };
+  let digits = null;
+  if (/^\d+$/.test(t)) digits = t;
+  else if (GROUPED.test(t)) digits = t.replace(/\D/g, "");
+  if (digits === null) return { ok: false };
+  const value = Number(digits);
+  return Number.isSafeInteger(value) ? { ok: true, value } : { ok: false };
+}
+
+/** Whole mg in es-CL: 1250 -> «1.250». */
+export function formatMg(n) {
+  return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
+/** The line under a sodium field that repeats what will be kept. */
+export function sodiumEcho(value) {
+  return `Se entiende como: ${value === null ? ILEGIBLE : `${formatMg(value)} mg`}`;
+}
+
+/** The inline error of a sodium field that is not a whole number. */
+export function sodiumError(label) {
+  return `En «${label}» escribe los miligramos como número entero, sin coma ni decimales. Por ejemplo: 1250 o 1.250.`;
+}
+
+// --- Active confirmation of the two critical answers ------------------------------
+
+const READ_TEXT = { [SI]: "sí", [NO]: "no", [ILEGIBLE]: ILEGIBLE };
+
+/** «Se leyó: sí / no / no se pudo leer», shown next to a critical answer. */
+export function readLine(answer) {
+  return Object.prototype.hasOwnProperty.call(READ_TEXT, answer) ? `Se leyó: ${READ_TEXT[answer]}` : "";
+}
+
+/** The radios to pre-check from the reading: every answer except the critical two. */
+export function preChecked(values) {
+  const v = values || {};
+  const out = {};
+  for (const { key } of [...SEALS, POTASSIUM]) {
+    if (!CRITICAL.includes(key) && ANSWERS.includes(v[key])) out[key] = v[key];
+  }
+  return out;
+}
+
+const CHOOSE = {
+  alto_en_sodio: "Toca tu respuesta para el sello «ALTO EN SODIO»: sí, no o no se pudo leer.",
+  cloruro_de_potasio: "Toca tu respuesta para «cloruro de potasio» en los ingredientes: sí, no o no se pudo leer.",
+};
+
+/**
+ * The answers still missing, in screen order, each with the message to show.
+ * Confirming waits until this is empty.
+ */
+export function missingChoices(choices) {
+  const c = choices || {};
+  return [...SEALS, POTASSIUM]
+    .filter(({ key }) => !ANSWERS.includes(c[key]))
+    .map(({ key, label }) => ({ key, message: CHOOSE[key] || `Elige una respuesta para ${label}.` }));
 }
 
 // --- Errors ---------------------------------------------------------------------
@@ -86,7 +176,9 @@ export const PREPARE_FAILED = "No se pudo preparar esta foto. Prueba con otra fo
 // Every sentence the screen can show from script, for the wording tests.
 export const UI_COPY = [
   ...Object.values(BY_STATUS), OFFLINE, GENERIC, PREPARE_FAILED,
-  PAUTA_SODIO, PAUTA_POTASIO, NEUTRAL,
+  PAUTA_SODIO, PAUTA_POTASIO, NEUTRAL, UNREAD_SODIO, UNREAD_POTASIO,
+  ...Object.values(CHOOSE), ...SODIUM.map((s) => sodiumError(s.label)),
+  sodiumEcho(null), readLine(SI), readLine(NO), readLine(ILEGIBLE),
   ...SEALS.map((s) => s.label), POTASSIUM.label, ...SODIUM.map((s) => s.label),
   SI, NO, ILEGIBLE,
 ];
@@ -95,6 +187,13 @@ export const UI_COPY = [
 
 const isAnswer = (v) => ANSWERS.includes(v);
 const isAmount = (v) => v === null || (typeof v === "number" && Number.isFinite(v) && v >= 0);
+
+/** A reader amount as printed in Chile: 1250 -> «1.250», 12.5 -> «12,5» (left for the person to fix). */
+function amountText(n) {
+  if (Number.isSafeInteger(n)) return formatMg(n);
+  const [whole, frac] = String(n).split(".");
+  return frac === undefined ? String(n) : `${formatMg(whole)},${frac}`;
+}
 
 /**
  * Checks the reader's answer and turns it into form values. Returns null when the
@@ -112,7 +211,7 @@ export function readingToForm(r) {
   out[POTASSIUM.key] = r[POTASSIUM.key];
   for (const { key } of SODIUM) {
     if (!isAmount(r[key])) return null;
-    out[key] = r[key] === null ? "" : String(r[key]);
+    out[key] = r[key] === null ? "" : amountText(r[key]);
   }
   return out;
 }

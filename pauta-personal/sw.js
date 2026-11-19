@@ -1,5 +1,5 @@
 // Bump VERSION whenever any cached file changes.
-var VERSION = "pauta-v6";
+var VERSION = "pauta-v7";
 var FILES = [
   "./",
   "index.html",
@@ -46,13 +46,22 @@ self.addEventListener("activate", function (event) {
 // Only this site's own GET requests go through the cache. Anything else, like the
 // photo sent to the label reader (a POST to another origin), goes to the network
 // only and is never stored.
+// Only a correct answer (200, from this site) replaces the cached copy: an error
+// page, a partial or redirected answer never overwrites a good offline file.
+function cacheable(res) {
+  return res && res.ok && res.status === 200 && res.type === "basic";
+}
+
 self.addEventListener("fetch", function (event) {
   if (event.request.method !== "GET") return;
   if (new URL(event.request.url).origin !== self.location.origin) return;
   event.respondWith(
     fetch(event.request).then(function (res) {
-      var copy = res.clone();
-      caches.open(VERSION).then(function (cache) { cache.put(event.request, copy); });
+      if (cacheable(res)) {
+        var copy = res.clone();
+        var put = caches.open(VERSION).then(function (cache) { return cache.put(event.request, copy); });
+        try { event.waitUntil(put); } catch (e) { /* the write still runs */ }
+      }
       return res;
     }).catch(function () {
       return caches.match(event.request, { ignoreSearch: true }).then(function (hit) {

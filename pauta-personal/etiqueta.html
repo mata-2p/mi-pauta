@@ -58,7 +58,7 @@
       <div id="paso-aviso" class="card aviso measure" hidden>
         <h2 id="t-aviso" tabindex="-1">Antes de la primera foto</h2>
         <ul class="plain">
-          <li>La foto de la etiqueta se envía a un servicio que la lee. La foto no se guarda.</li>
+          <li>La foto que eliges sale del teléfono sin metadatos y pasa por Cloudflare y OpenRouter hasta un modelo de Google, fuera de Chile. Se usa solo para leer la etiqueta y no se guarda.</li>
           <li>Fotografía solo el envase. No incluyas personas ni documentos.</li>
           <li>Lo que se lea puede tener errores: revísalo siempre con el envase.</li>
         </ul>
@@ -90,8 +90,8 @@
         </figure>
       </div>
 
-      <p id="estado" class="status" role="status" aria-live="polite"></p>
-      <div id="error" class="errors measure" role="alert" aria-live="assertive"></div>
+      <p id="estado" class="status" role="status"></p>
+      <div id="error" class="errors measure" role="alert"></div>
 
       <!-- 3. What was read, to confirm or correct -->
       <form id="f-confirmar" class="card form confirmar" novalidate aria-labelledby="t-confirmar" hidden>
@@ -100,9 +100,10 @@
 
         <fieldset class="choices">
           <legend>Sello «ALTO EN SODIO»</legend>
-          <input id="s-sodio-si" name="alto_en_sodio" type="radio" value="sí"><label for="s-sodio-si">Sí</label>
-          <input id="s-sodio-no" name="alto_en_sodio" type="radio" value="no"><label for="s-sodio-no">No</label>
-          <input id="s-sodio-nl" name="alto_en_sodio" type="radio" value="no se pudo leer"><label for="s-sodio-nl">No se pudo leer</label>
+          <p id="leido-alto_en_sodio" class="leido"></p>
+          <input id="s-sodio-si" name="alto_en_sodio" type="radio" value="sí" aria-describedby="leido-alto_en_sodio"><label for="s-sodio-si">Sí</label>
+          <input id="s-sodio-no" name="alto_en_sodio" type="radio" value="no" aria-describedby="leido-alto_en_sodio"><label for="s-sodio-no">No</label>
+          <input id="s-sodio-nl" name="alto_en_sodio" type="radio" value="no se pudo leer" aria-describedby="leido-alto_en_sodio"><label for="s-sodio-nl">No se pudo leer</label>
         </fieldset>
         <fieldset class="choices">
           <legend>Sello «ALTO EN AZÚCARES»</legend>
@@ -124,30 +125,33 @@
         </fieldset>
         <fieldset class="choices">
           <legend>¿Los ingredientes dicen «cloruro de potasio»?</legend>
-          <input id="s-potasio-si" name="cloruro_de_potasio" type="radio" value="sí"><label for="s-potasio-si">Sí</label>
-          <input id="s-potasio-no" name="cloruro_de_potasio" type="radio" value="no"><label for="s-potasio-no">No</label>
-          <input id="s-potasio-nl" name="cloruro_de_potasio" type="radio" value="no se pudo leer"><label for="s-potasio-nl">No se pudo leer</label>
+          <p id="leido-cloruro_de_potasio" class="leido"></p>
+          <input id="s-potasio-si" name="cloruro_de_potasio" type="radio" value="sí" aria-describedby="leido-cloruro_de_potasio"><label for="s-potasio-si">Sí</label>
+          <input id="s-potasio-no" name="cloruro_de_potasio" type="radio" value="no" aria-describedby="leido-cloruro_de_potasio"><label for="s-potasio-no">No</label>
+          <input id="s-potasio-nl" name="cloruro_de_potasio" type="radio" value="no se pudo leer" aria-describedby="leido-cloruro_de_potasio"><label for="s-potasio-nl">No se pudo leer</label>
         </fieldset>
 
         <fieldset>
           <legend>Sodio en la tabla nutricional, en miligramos</legend>
+          <p class="small">Escribe el número entero, sin decimales. Déjalo vacío si no se pudo leer.</p>
           <div class="pair">
             <div class="field">
               <label for="sodio-100">Por 100 gramos o 100 mililitros</label>
-              <input id="sodio-100" class="num" name="sodio_mg_100" type="number" inputmode="decimal" min="0" step="any" autocomplete="off" aria-describedby="h-sodio-100 e-confirmar">
-              <p id="h-sodio-100" class="hint" hidden>no se pudo leer</p>
+              <input id="sodio-100" class="num" name="sodio_mg_100" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" aria-describedby="eco-sodio-100">
+              <p id="eco-sodio-100" class="eco"></p>
             </div>
             <div class="field">
               <label for="sodio-porcion">Por porción</label>
-              <input id="sodio-porcion" class="num" name="sodio_mg_porcion" type="number" inputmode="decimal" min="0" step="any" autocomplete="off" aria-describedby="h-sodio-porcion e-confirmar">
-              <p id="h-sodio-porcion" class="hint" hidden>no se pudo leer</p>
+              <input id="sodio-porcion" class="num" name="sodio_mg_porcion" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" aria-describedby="eco-sodio-porcion">
+              <p id="eco-sodio-porcion" class="eco"></p>
             </div>
           </div>
         </fieldset>
 
-        <div id="e-confirmar" class="errors" role="alert" aria-live="assertive"></div>
+        <p id="h-confirmar" class="small">Para confirmar, toca tu respuesta en el sello «ALTO EN SODIO» y en «cloruro de potasio».</p>
+        <div id="e-confirmar" class="errors" role="alert"></div>
         <div class="actions">
-          <button type="submit" class="btn primary">Confirmo lo que veo en el envase</button>
+          <button type="submit" class="btn primary" aria-describedby="h-confirmar">Confirmo lo que veo en el envase</button>
           <button type="button" id="otra-foto" class="btn">Usar otra foto</button>
         </div>
       </form>
@@ -163,9 +167,13 @@
             <h3 class="sr">Lo que confirmaste</h3>
             <ul id="confirmado" class="plain confirmado"></ul>
           </div>
-          <div class="card measure pauta-dice">
+          <div id="pauta-card" class="card measure pauta-dice">
             <h3>Lo que dice tu pauta</h3>
             <div id="frases"></div>
+          </div>
+          <div id="revisar-card" class="card measure revisar" hidden>
+            <h3>Para revisar en el envase</h3>
+            <div id="revisar"></div>
           </div>
           <p class="small measure">Nada de esto se guarda: al salir de esta página se borra.</p>
         </div>
