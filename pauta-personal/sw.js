@@ -1,5 +1,5 @@
 // Bump VERSION whenever any cached file changes.
-var VERSION = "pauta-v4";
+var VERSION = "pauta-v5";
 var FILES = [
   "./",
   "index.html",
@@ -10,6 +10,10 @@ var FILES = [
   "registro.css",
   "registro.js",
   "registro-core.js",
+  "etiqueta.html",
+  "etiqueta.css",
+  "etiqueta.js",
+  "etiqueta-core.js",
   "manifest.webmanifest",
   "icon.svg",
   "speaker.svg",
@@ -35,8 +39,12 @@ self.addEventListener("activate", function (event) {
 });
 
 // Network first so a corrected pauta reaches the phone; cache when offline.
+// Only this site's own GET requests go through the cache. Anything else, like the
+// photo sent to the label reader (a POST to another origin), goes to the network
+// only and is never stored.
 self.addEventListener("fetch", function (event) {
   if (event.request.method !== "GET") return;
+  if (new URL(event.request.url).origin !== self.location.origin) return;
   event.respondWith(
     fetch(event.request).then(function (res) {
       var copy = res.clone();

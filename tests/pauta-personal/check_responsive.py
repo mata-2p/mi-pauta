@@ -11,7 +11,10 @@ checks what can be checked without a browser:
   navigation hides its links in a sideways-scrolling strip;
 - the CSS uses fluid type, safe-area insets and reduced motion, and draws no
   icons from image files (icons are inline SVG);
-- the service worker caches every file of the page under a new version.
+- the service worker caches every file of the page under a new version, and
+  leaves requests to other origins (the label reader) to the network only;
+- the «Leer una etiqueta» page (one screen, no hub) has the same viewport,
+  breadcrumbs and «Volver al inicio» link, and both hubs or navs link to it.
 
 Usage: python3 -I tests/pauta-personal/check_responsive.py pauta-personal
 """
@@ -21,8 +24,10 @@ import sys
 from html.parser import HTMLParser
 
 PAGES = ["index.html", "registro.html"]
-CSS = ["styles.css", "registro.css"]
-VERSION = "pauta-v4"
+# Pages with a single screen and no hub of tiles.
+SINGLE = ["etiqueta.html"]
+CSS = ["styles.css", "registro.css", "etiqueta.css"]
+VERSION = "pauta-v5"
 HUB = "inicio"
 
 # The largest text step (A+) is 1.5 x 19 px. A width in rem or em that is wider
@@ -113,6 +118,27 @@ def check_page(name, html):
     return problems, len(secs)
 
 
+def check_single(name, html):
+    """A one-screen page: same viewport rules, breadcrumbs and a way back to the pauta."""
+    problems = []
+    page = Page()
+    page.feed(html)
+    vp = page.viewport or ""
+    if "width=device-width" not in vp:
+        problems.append(f"{name}: NO VIEWPORT META with width=device-width")
+    if "viewport-fit=cover" not in vp:
+        problems.append(f"{name}: VIEWPORT without viewport-fit=cover (safe-area insets)")
+    if page.imgs:
+        problems.append(f"{name}: {page.imgs} <img> (icons must be inline SVG)")
+    if 'class="crumbs"' not in html:
+        problems.append(f"{name}: NO BREADCRUMBS")
+    if not any(l[2].startswith("index.html") and "volver" in l[3].lower() for l in page.links):
+        problems.append(f"{name}: no «Volver» link to index.html")
+    if 'id="smaller"' not in html or 'id="bigger"' not in html:
+        problems.append(f"{name}: no A−/A+ buttons")
+    return problems
+
+
 def strip_comments(css):
     return re.sub(r"/\*.*?\*/", "", css, flags=re.S)
 
@@ -183,8 +209,20 @@ def main(root):
             found, n = check_page(p, fh.read())
         problems += found
         counts[p] = n
+        with open(os.path.join(root, p), encoding="utf-8") as fh:
+            if 'href="etiqueta.html"' not in fh.read():
+                problems.append(f"{p}: no link to etiqueta.html («Leer una etiqueta»)")
+    for p in SINGLE:
+        if not os.path.isfile(os.path.join(root, p)):
+            problems.append(f"{p}: missing")
+            continue
+        with open(os.path.join(root, p), encoding="utf-8") as fh:
+            problems += check_single(p, fh.read())
     css_all = ""
     for c in CSS:
+        if not os.path.isfile(os.path.join(root, c)):
+            problems.append(f"{c}: missing")
+            continue
         with open(os.path.join(root, c), encoding="utf-8") as fh:
             text = fh.read()
         css_all += text
@@ -207,6 +245,14 @@ def main(root):
         sw = fh.read()
     if f'VERSION = "{VERSION}"' not in sw:
         problems.append(f'sw.js: VERSION is not "{VERSION}"')
+    # Requests to another origin (the label reader) are never answered from or
+    # written to the cache: the handler returns before respondWith.
+    fetch_handler = sw.split('addEventListener("fetch"', 1)[1] if 'addEventListener("fetch"' in sw else ""
+    before = fetch_handler.split("respondWith", 1)[0]
+    if not re.search(r"origin\s*!==\s*self\.location\.origin[^;]*\)\s*return", before):
+        problems.append("sw.js: requests to other origins are not left to the network")
+    if not re.search(r'method\s*!==\s*"GET"\)\s*return', before):
+        problems.append("sw.js: non-GET requests are not left to the network")
     cached = set(re.findall(r'"([^"]+\.[a-z]+)"', sw.split("FILES", 1)[1].split("]", 1)[0])) if "FILES" in sw else set()
     files = sorted(f for f in os.listdir(root) if os.path.isfile(os.path.join(root, f)) and f != "sw.js")
     uncached = [f for f in files if f not in cached]
@@ -216,8 +262,8 @@ def main(root):
     for p in problems:
         print(p)
     print(
-        "sections: " + ", ".join(f"{p} {counts[p]}" for p in PAGES)
-        + f"; page problems: {sum(1 for p in problems if p.startswith(tuple(PAGES)))}"
+        "sections: " + ", ".join(f"{p} {counts[p]}" for p in PAGES) + f", {', '.join(SINGLE)} 1"
+        + f"; page problems: {sum(1 for p in problems if p.startswith(tuple(PAGES + SINGLE)))}"
         + f"; css problems: {sum(1 for p in problems if p.startswith(tuple(CSS)) or p.startswith('CSS'))}"
         + f"; offline cache: {len(files) - len(uncached)}/{len(files)} files"
         + f"; problems: {len(problems)}"

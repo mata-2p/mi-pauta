@@ -13,6 +13,9 @@ Checks:
   whole word unless the term starts or ends with "*"). Default list:
   terminos-prohibidos.txt next to this script. If it is absent the check is
   skipped with a notice and the generic checks still run.
+  Exception (L35 in odd/tasks/app-cuidado-renal.md): exact, case-sensitive
+  occurrences of ALLOWED_LITERALS in file contents are ignored by this check
+  only; file names, PNG chunks and the generic patterns are unaffected.
 - generic patterns: e-mail addresses, Chilean national ID numbers, +56 phones.
 - binary files other than .png/.svg/.ico, files over 1 MB.
 - PNG metadata chunks (tEXt, iTXt, zTXt, eXIf).
@@ -35,6 +38,12 @@ PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 PNG_FLAGGED = {b"tEXt", b"iTXt", b"zTXt", b"eXIf"}
 PNG_STRIPPED = PNG_FLAGGED | {b"tIME"}
 
+# L35 (odd/tasks/app-cuidado-renal.md): the user allowed only the public
+# label-reader Worker host. Hardcoded on purpose: no CLI flag or env var may
+# extend it. Matched exactly (no folding) and only as a whole host name.
+ALLOWED_LITERALS = ("mi-pauta-etiquetas.matiasjbarriah.workers.dev",)
+HOST_CHARS = "._@-"
+
 GENERIC = [
     # The look-behind keeps the search linear on long runs of word characters.
     ("correo electrónico", re.compile(r"(?<![A-Za-z0-9._%+-])[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}")),
@@ -48,6 +57,35 @@ def fold(text):
     """Lowercase and drop accents so "CAFÉ" and "cafe" compare equal."""
     decomposed = unicodedata.normalize("NFKD", text)
     return "".join(c for c in decomposed if not unicodedata.combining(c)).casefold()
+
+
+def _continues_host(c):
+    """True if c could extend a host name: letters, digits, "._@-", marks, format chars."""
+    return c.isalnum() or c in HOST_CHARS or unicodedata.category(c)[0] == "M" or unicodedata.category(c) == "Cf"
+
+
+def strip_allowed(line):
+    """Blank out exact ALLOWED_LITERALS that stand alone as a host name.
+
+    The character before must not continue a host name. After it, the same
+    holds, except one trailing dot that is not followed by another host char.
+    """
+    for literal in ALLOWED_LITERALS:
+        out, i = [], 0
+        while (j := line.find(literal, i)) != -1:
+            end = j + len(literal)
+            before = line[j - 1] if j else ""
+            after = line[end:end + 1]
+            if after == ".":
+                after = line[end + 1:end + 2]
+            if (before and _continues_host(before)) or (after and _continues_host(after)):
+                out.append(line[i:end])
+            else:
+                out.append(line[i:j] + " ")
+            i = end
+        out.append(line[i:])
+        line = "".join(out)
+    return line
 
 
 def load_terms(path):
@@ -133,7 +171,7 @@ def scan_file(path, rel, terms):
             if rx.search(line):
                 hits.append(f"{rel}:{number}: {label}")
         if terms:
-            folded = fold(line)
+            folded = fold(strip_allowed(line))
             hits += [f"{rel}:{number}: término prohibido: {t}" for t, rx in terms if rx.search(folded)]
     return hits
 

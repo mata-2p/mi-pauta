@@ -1,6 +1,10 @@
 """Checks that pauta-personal/registro.html ("Mis anotaciones") offers its sections,
 never judges what the person wrote, and loads nothing from outside the site.
 
+It also checks the «Leer una etiqueta» page next to it (etiqueta.html): no
+judging words, a label on every control, nothing loaded from outside the site,
+and the label reader as the only place its scripts talk to over the network.
+
 Usage: python3 -I tests/pauta-personal/check_registro.py pauta-personal/registro.html
 """
 import os
@@ -30,6 +34,14 @@ SCRIPTS = ["registro.js", "registro-core.js"]
 NETWORK_APIS = re.compile(r"\bfetch\s*\(|XMLHttpRequest|WebSocket|EventSource|sendBeacon|https?://|import\s*\(")
 
 SCHEME = re.compile(r"^\s*([a-zA-Z][a-zA-Z0-9+.-]*:|//)")
+
+# «Leer una etiqueta»: the page, its scripts, and the one address they may call.
+LABEL_PAGE = "etiqueta.html"
+LABEL_SCRIPTS = ["etiqueta.js", "etiqueta-core.js"]
+LABEL_FORBIDDEN = FORBIDDEN_WORDS + ["prohibido", "peligro"]
+READER_URL = re.compile(r"^https://mi-pauta-etiquetas\.[a-z0-9-]+\.workers\.dev/leer$")
+URL_IN_JS = re.compile(r"https?://[^\s\"'`)]+")
+OTHER_NETWORK = re.compile(r"XMLHttpRequest|WebSocket|EventSource|sendBeacon|import\s*\(")
 
 
 class Page(HTMLParser):
@@ -76,6 +88,53 @@ class Page(HTMLParser):
             self.parts.append(data)
 
 
+def check_label_page(base, registro_page):
+    """Returns the problems found in etiqueta.html and its scripts."""
+    problems = []
+    path = os.path.join(base, LABEL_PAGE)
+    if not os.path.isfile(path):
+        return [f"LABEL PAGE: missing {LABEL_PAGE}"]
+    with open(path, encoding="utf-8") as fh:
+        html = fh.read()
+    page = Page()
+    page.feed(html)
+    text = re.sub(r"\s+", " ", " ".join(page.parts)).lower()
+    sources = {}
+    for name in LABEL_SCRIPTS:
+        with open(os.path.join(base, name), encoding="utf-8") as fh:
+            sources[name] = fh.read()
+
+    for w in LABEL_FORBIDDEN:
+        if w in text or w in html.lower():
+            problems.append(f"LABEL PAGE: FORBIDDEN WORD in page: {w}")
+        for name, src in sources.items():
+            if w in src.lower():
+                problems.append(f"LABEL PAGE: FORBIDDEN WORD in {name}: {w}")
+    for u in page.urls:
+        if SCHEME.match(u):
+            problems.append(f"LABEL PAGE: EXTERNAL URL: {u}")
+    for c in page.controls:
+        if not c or c not in page.label_for:
+            problems.append(f"LABEL PAGE: FIELD WITHOUT LABEL: {c}")
+    urls = [(name, u) for name, src in sources.items() for u in URL_IN_JS.findall(src)]
+    if not urls:
+        problems.append("LABEL PAGE: no label reader address in its scripts")
+    for name, u in urls:
+        if not READER_URL.match(u):
+            problems.append(f"LABEL PAGE: URL other than the label reader in {name}: {u}")
+    for name, src in sources.items():
+        for m in OTHER_NETWORK.findall(src):
+            problems.append(f"LABEL PAGE: NETWORK API in {name}: {m}")
+    fetches = {name: len(re.findall(r"\bfetch\s*\(", src)) for name, src in sources.items()}
+    if fetches.get("etiqueta-core.js"):
+        problems.append("LABEL PAGE: etiqueta-core.js must not call fetch (pure logic)")
+    if fetches.get("etiqueta.js") != 1:
+        problems.append(f"LABEL PAGE: etiqueta.js must call fetch exactly once, found {fetches.get('etiqueta.js')}")
+    if 'href="etiqueta.html"' not in registro_page:
+        problems.append("LABEL PAGE: registro.html has no link to etiqueta.html")
+    return problems
+
+
 def main(path):
     with open(path, encoding="utf-8") as fh:
         html = fh.read()
@@ -110,6 +169,8 @@ def main(path):
     unlabeled = [c for c in page.controls if not c or c not in page.label_for]
     for c in unlabeled:
         problems.append(f"FIELD WITHOUT LABEL: {c}")
+    label_problems = check_label_page(base, html)
+    problems += label_problems
 
     for p in problems:
         print(p)
@@ -119,7 +180,8 @@ def main(path):
         f"forbidden words: {sum(1 for p in problems if p.startswith('FORBIDDEN'))}; "
         f"external urls: {len(external)}; "
         f"network apis: {sum(1 for p in problems if p.startswith('NETWORK'))}; "
-        f"fields without label: {len(unlabeled)}"
+        f"fields without label: {len(unlabeled)}; "
+        f"label page problems: {len(label_problems)}"
     )
     return 1 if problems else 0
 

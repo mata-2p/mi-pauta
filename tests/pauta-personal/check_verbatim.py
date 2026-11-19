@@ -1,8 +1,13 @@
 """Checks that pauta-personal/index.html carries the nutritionist's pauta verbatim
 and adds no clinical numbers of its own.
 
+It also checks the «Leer una etiqueta» screen next to it (etiqueta.html and
+etiqueta-core.js): every pauta sentence it quotes is a sentence of the pauta,
+word for word, and it adds no clinical numbers or deciding wording either.
+
 Usage: python3 -I tests/pauta-personal/check_verbatim.py pauta-personal/index.html
 """
+import os
 import re
 import sys
 from html.parser import HTMLParser
@@ -79,13 +84,63 @@ class Text(HTMLParser):
             self.parts.append(data)
 
 
-def main(path):
+# The only pauta sentences the label screen may show after confirmation.
+LABEL_QUOTES = {
+    "PAUTA_SODIO": "Elegir productos con menor cantidad de sodio.",
+    "PAUTA_POTASIO": "No usar 'sal light' o sustitutos de sal con potasio.",
+}
+LABEL_FORBIDDEN = FORBIDDEN_PHRASES + ["normal", "riesgo", "elevad", "prohibido", "peligro"]
+
+
+def page_text(html):
     parser = Text()
-    with open(path, encoding="utf-8") as fh:
-        parser.feed(fh.read())
-    text = re.sub(r"\s+", " ", " ".join(parser.parts))
+    parser.feed(html)
+    return re.sub(r"\s+", " ", " ".join(parser.parts))
+
+
+def check_label_screen(base, source_text):
+    """Returns (problems, quotes checked) for etiqueta.html and etiqueta-core.js."""
+    problems = []
+    paths = {n: os.path.join(base, n) for n in ("etiqueta.html", "etiqueta-core.js")}
+    for name, p in paths.items():
+        if not os.path.isfile(p):
+            problems.append(f"LABEL SCREEN: missing {name}")
+    if problems:
+        return problems, 0
+    with open(paths["etiqueta.html"], encoding="utf-8") as fh:
+        text = page_text(fh.read())
+    with open(paths["etiqueta-core.js"], encoding="utf-8") as fh:
+        core = fh.read()
+
+    checked = 0
+    for const, sentence in LABEL_QUOTES.items():
+        m = re.search(rf'export const {const} = "((?:[^"\\]|\\.)*)";', core)
+        checked += 1
+        if not m:
+            problems.append(f"LABEL SCREEN: etiqueta-core.js has no {const}")
+            continue
+        if m.group(1) != sentence:
+            problems.append(f"LABEL SCREEN: {const} is not the pauta sentence: {m.group(1)!r}")
+        if sentence not in SOURCE or sentence not in source_text:
+            problems.append(f"LABEL SCREEN: {const} is not in the pauta: {sentence!r}")
+    # Any «…» quotation in the page that ends in a period is meant as a pauta sentence.
+    for q in re.findall(r"«([^»]+\.)»", text):
+        checked += 1
+        if q not in SOURCE:
+            problems.append(f"LABEL SCREEN: quoted text is not a pauta sentence: {q!r}")
+    for unit in FORBIDDEN.findall(text):
+        problems.append(f"LABEL SCREEN: FORBIDDEN UNIT: {unit}")
+    low = (text + " " + core).lower()
+    for p in LABEL_FORBIDDEN:
+        if p in low:
+            problems.append(f"LABEL SCREEN: FORBIDDEN PHRASE: {p}")
+    return problems, checked
+
+
+def main(path):
     with open(path, encoding="utf-8") as fh:
         html = fh.read()
+    text = page_text(html)
 
     missing = [s for s in SOURCE if s not in text]
     numbers = FORBIDDEN.findall(text)
@@ -103,12 +158,16 @@ def main(path):
         print("MISSING NAV LINK:", k)
     for p in phrases:
         print("FORBIDDEN PHRASE:", p)
+    label_problems, quotes = check_label_screen(os.path.dirname(path), text)
+    for p in label_problems:
+        print(p)
     print(
         f"{len(SOURCE) - len(missing)}/{len(SOURCE)} source sentences present; "
         f"forbidden units: {len(numbers)}; sections: {len(SECTIONS) - len(no_section)}/{len(SECTIONS)}; "
-        f"nav links: {len(SECTIONS) - len(no_link)}/{len(SECTIONS)}; forbidden phrases: {len(phrases)}"
+        f"nav links: {len(SECTIONS) - len(no_link)}/{len(SECTIONS)}; forbidden phrases: {len(phrases)}; "
+        f"label screen: {quotes} pauta quotes checked, {len(label_problems)} problems"
     )
-    return 1 if missing or numbers or no_section or no_link or phrases else 0
+    return 1 if missing or numbers or no_section or no_link or phrases or label_problems else 0
 
 
 if __name__ == "__main__":
