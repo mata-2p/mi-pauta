@@ -13,8 +13,9 @@ checks what can be checked without a browser:
   icons from image files (icons are inline SVG);
 - the service worker caches every file of the page under a new version, and
   leaves requests to other origins (the label reader) to the network only;
-- the «Leer una etiqueta» page (one screen, no hub) has the same viewport,
-  breadcrumbs and «Volver al inicio» link, and both hubs or navs link to it.
+- the «Leer una etiqueta» and «Mi despensa» pages (one screen, no hub) have
+  the same viewport, breadcrumbs and «Volver al inicio» link, and both hubs or
+  navs link to them.
 
 Usage: python3 -I tests/pauta-personal/check_responsive.py pauta-personal
 """
@@ -25,9 +26,9 @@ from html.parser import HTMLParser
 
 PAGES = ["index.html", "registro.html"]
 # Pages with a single screen and no hub of tiles.
-SINGLE = ["etiqueta.html"]
-CSS = ["styles.css", "registro.css", "etiqueta.css"]
-VERSION = "pauta-v5"
+SINGLE = ["etiqueta.html", "despensa.html"]
+CSS = ["styles.css", "registro.css", "etiqueta.css", "despensa.css"]
+VERSION = "pauta-v6"
 HUB = "inicio"
 
 # The largest text step (A+) is 1.5 x 19 px. A width in rem or em that is wider
@@ -210,8 +211,10 @@ def main(root):
         problems += found
         counts[p] = n
         with open(os.path.join(root, p), encoding="utf-8") as fh:
-            if 'href="etiqueta.html"' not in fh.read():
-                problems.append(f"{p}: no link to etiqueta.html («Leer una etiqueta»)")
+            html = fh.read()
+        for target, name in [("etiqueta.html", "Leer una etiqueta"), ("despensa.html", "Mi despensa")]:
+            if f'href="{target}"' not in html:
+                problems.append(f"{p}: no link to {target} («{name}»)")
     for p in SINGLE:
         if not os.path.isfile(os.path.join(root, p)):
             problems.append(f"{p}: missing")
@@ -227,6 +230,8 @@ def main(root):
             text = fh.read()
         css_all += text
         problems += check_css(c, text)
+        if c == "despensa.css" and "prefers-reduced-motion" not in text:
+            problems.append(f"{c}: no prefers-reduced-motion rule of its own")
     for need, what in [
         (r"font-size\s*:[^;]*clamp\(", "fluid type with clamp()"),
         (r"env\(\s*safe-area-inset-", "safe-area insets"),
@@ -262,7 +267,7 @@ def main(root):
     for p in problems:
         print(p)
     print(
-        "sections: " + ", ".join(f"{p} {counts[p]}" for p in PAGES) + f", {', '.join(SINGLE)} 1"
+        "sections: " + ", ".join(f"{p} {counts[p]}" for p in PAGES) + "".join(f", {s} 1" for s in SINGLE)
         + f"; page problems: {sum(1 for p in problems if p.startswith(tuple(PAGES + SINGLE)))}"
         + f"; css problems: {sum(1 for p in problems if p.startswith(tuple(CSS)) or p.startswith('CSS'))}"
         + f"; offline cache: {len(files) - len(uncached)}/{len(files)} files"

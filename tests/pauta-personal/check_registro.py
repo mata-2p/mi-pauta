@@ -5,6 +5,10 @@ It also checks the «Leer una etiqueta» page next to it (etiqueta.html): no
 judging words, a label on every control, nothing loaded from outside the site,
 and the label reader as the only place its scripts talk to over the network.
 
+And «Mi despensa» (despensa.html): no judging words, a label on every control,
+nothing loaded from outside the site, no network at all in its scripts, and
+links to it from the pauta and from Mis anotaciones.
+
 Usage: python3 -I tests/pauta-personal/check_registro.py pauta-personal/registro.html
 """
 import os
@@ -135,6 +139,61 @@ def check_label_page(base, registro_page):
     return problems
 
 
+# «Mi despensa»: the page and its scripts. The pauta's own table inside
+# despensa-core.js (between the markers) is checked word for word by
+# check_verbatim.py, so it is left out of the wording check here.
+DESPENSA_PAGE = "despensa.html"
+DESPENSA_SCRIPTS = ["despensa.js", "despensa-core.js"]
+DESPENSA_FORBIDDEN = FORBIDDEN_WORDS + ["prohibido", "peligro", "demasiado", "exceso"]
+
+
+def without_pauta_table(src):
+    return re.sub(r"// <pauta-table>.*?// </pauta-table>", "", src, flags=re.S)
+
+
+def check_despensa_page(base, registro_page):
+    """Returns the problems found in despensa.html and its scripts."""
+    path = os.path.join(base, DESPENSA_PAGE)
+    if not os.path.isfile(path):
+        return [f"DESPENSA PAGE: missing {DESPENSA_PAGE}"]
+    problems = []
+    with open(path, encoding="utf-8") as fh:
+        html = fh.read()
+    page = Page()
+    page.feed(html)
+    text = re.sub(r"\s+", " ", " ".join(page.parts)).lower()
+    sources = {}
+    for name in DESPENSA_SCRIPTS:
+        p = os.path.join(base, name)
+        if not os.path.isfile(p):
+            problems.append(f"DESPENSA PAGE: missing {name}")
+            continue
+        with open(p, encoding="utf-8") as fh:
+            sources[name] = fh.read()
+    for w in DESPENSA_FORBIDDEN:
+        if w in text:
+            problems.append(f"DESPENSA PAGE: FORBIDDEN WORD in page: {w}")
+        for name, src in sources.items():
+            if w in without_pauta_table(src).lower():
+                problems.append(f"DESPENSA PAGE: FORBIDDEN WORD in {name}: {w}")
+    for u in page.urls:
+        if SCHEME.match(u):
+            problems.append(f"DESPENSA PAGE: EXTERNAL URL: {u}")
+    for c in page.controls:
+        if not c or c not in page.label_for:
+            problems.append(f"DESPENSA PAGE: FIELD WITHOUT LABEL: {c}")
+    for name, src in sources.items():
+        for m in NETWORK_APIS.findall(src):
+            problems.append(f"DESPENSA PAGE: NETWORK API in {name}: {m}")
+    index = os.path.join(base, "index.html")
+    with open(index, encoding="utf-8") as fh:
+        if 'href="despensa.html"' not in fh.read():
+            problems.append("DESPENSA PAGE: index.html has no link to despensa.html")
+    if 'href="despensa.html"' not in registro_page:
+        problems.append("DESPENSA PAGE: registro.html has no link to despensa.html")
+    return problems
+
+
 def main(path):
     with open(path, encoding="utf-8") as fh:
         html = fh.read()
@@ -171,6 +230,8 @@ def main(path):
         problems.append(f"FIELD WITHOUT LABEL: {c}")
     label_problems = check_label_page(base, html)
     problems += label_problems
+    despensa_problems = check_despensa_page(base, html)
+    problems += despensa_problems
 
     for p in problems:
         print(p)
@@ -181,7 +242,8 @@ def main(path):
         f"external urls: {len(external)}; "
         f"network apis: {sum(1 for p in problems if p.startswith('NETWORK'))}; "
         f"fields without label: {len(unlabeled)}; "
-        f"label page problems: {len(label_problems)}"
+        f"label page problems: {len(label_problems)}; "
+        f"despensa page problems: {len(despensa_problems)}"
     )
     return 1 if problems else 0
 

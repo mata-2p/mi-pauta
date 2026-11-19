@@ -1,5 +1,5 @@
 // Bump VERSION whenever any cached file changes.
-var VERSION = "pauta-v5";
+var VERSION = "pauta-v6";
 var FILES = [
   "./",
   "index.html",
@@ -14,6 +14,10 @@ var FILES = [
   "etiqueta.css",
   "etiqueta.js",
   "etiqueta-core.js",
+  "despensa.html",
+  "despensa.css",
+  "despensa.js",
+  "despensa-core.js",
   "manifest.webmanifest",
   "icon.svg",
   "speaker.svg",

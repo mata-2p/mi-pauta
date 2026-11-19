@@ -2,12 +2,18 @@
 // Everything the person writes is stored and shown exactly as typed. Nothing here
 // compares a value against a limit, scores it or labels it.
 
+// «Mi despensa» travels in the same file, as an optional list (files from before
+// the despensa existed have none). Its own store keeps it apart from these notes.
+import { checkDespensaList, STORAGE_KEY as DESPENSA_KEY } from "./despensa-core.js";
+
 export const APP = "mi-pauta";
 export const SCHEMA = 1;
 export const STORAGE_KEY = "registro-v1";
 export const RECEIVED_KEY = "registro-recibido-v1";
 export const BACKUP_KEY = "registro-v1-respaldo";
 export const KINDS = ["controles", "diario", "mediciones", "preguntas"];
+// Optional block of the exported file, after the four kinds.
+export const DESPENSA = "despensa";
 // The pauta's meal times.
 export const MEALS = ["Desayuno", "Almuerzo", "Once", "Cena", "Colación"];
 export const CONTROL_KINDS = { control: "Control", examen: "Examen" };
@@ -210,8 +216,12 @@ function unknownKey(obj, allowed) {
 /** Strict validation of the data block. Returns an error string or null. */
 function checkData(data) {
   if (!isPlainObject(data)) return "El archivo tiene un dato con un formato que no corresponde («data») y no se abrió.";
-  const extra = unknownKey(data, KINDS);
+  const extra = unknownKey(data, [...KINDS, DESPENSA]);
   if (extra !== undefined) return `El archivo tiene un dato desconocido («${extra}») y no se abrió.`;
+  if (DESPENSA in data) {
+    const err = checkDespensaList(data[DESPENSA]);
+    if (err) return err;
+  }
   for (const kind of KINDS) {
     const list = data[kind];
     if (!Array.isArray(list)) return `El archivo tiene un dato con un formato que no corresponde («${kind}») y no se abrió.`;
@@ -331,6 +341,44 @@ export function icsFilename(c) {
   return `${c.kind === "examen" ? "examen" : "control"}-${c.date}.ics`;
 }
 
+// --- Restore: notes first, then the despensa; all or nothing -------------------------
+
+export const RESTORE_FAILED = "No se pudo restaurar: el teléfono no tiene espacio o no permite guardar. No se cambió nada en este teléfono.";
+export const RESTORE_PARTIAL = "No se pudo restaurar del todo: el teléfono no tiene espacio o no permite guardar. Revisa tus anotaciones y tu despensa antes de seguir.";
+
+/**
+ * Replaces the notes and, when the file has one, the despensa, with an already
+ * validated payload. Writes the notes first, then the despensa. If any write fails,
+ * both saved values go back to what they were before and both stores read them
+ * again. Returns { ok, despensa } or { ok: false, rolledBack, error }.
+ */
+export function restoreAll(notes, pantry, payload, storage) {
+  const withPantry = Array.isArray(payload.data[DESPENSA]);
+  const keys = [STORAGE_KEY, DESPENSA_KEY];
+  const before = keys.map((k) => storage.getItem(k));
+  try {
+    notes.restore(payload);
+    if (withPantry) {
+      const r = pantry.replaceAll(payload.data[DESPENSA]);
+      if (!r.ok) throw new Error(r.error);
+    }
+    return { ok: true, despensa: withPantry };
+  } catch {
+    let rolledBack = true;
+    keys.forEach((k, i) => {
+      try {
+        if (before[i] == null) storage.removeItem(k);
+        else storage.setItem(k, before[i]);
+      } catch {
+        rolledBack = false;
+      }
+    });
+    notes.reload();
+    pantry.reload();
+    return { ok: false, rolledBack, error: rolledBack ? RESTORE_FAILED : RESTORE_PARTIAL };
+  }
+}
+
 // --- Store (storage is injected: window.localStorage in the page) ------------------------
 
 function clone(v) {
@@ -347,7 +395,9 @@ export function createStore(storage, { now = () => new Date(), id = defaultId } 
   let state = { schema: SCHEMA, data: emptyData(), lastExportAt: null };
   let loadError = null;
 
-  (function load() {
+  function load() {
+    state = { schema: SCHEMA, data: emptyData(), lastExportAt: null };
+    loadError = null;
     const raw = storage.getItem(STORAGE_KEY);
     if (raw == null) return;
     try {
@@ -360,7 +410,8 @@ export function createStore(storage, { now = () => new Date(), id = defaultId } 
       loadError = "Las anotaciones guardadas no se pudieron leer. Se guardó un respaldo y se empezó de nuevo.";
       if (storage.getItem(BACKUP_KEY) == null) storage.setItem(BACKUP_KEY, raw);
     }
-  })();
+  }
+  load();
 
   // Writes the candidate state; keeps the previous state if the browser refuses.
   function commit(next) {
@@ -377,6 +428,8 @@ export function createStore(storage, { now = () => new Date(), id = defaultId } 
   return {
     loadError: () => loadError,
     getData: () => clone(state.data),
+    /** Reads storage again (after a restore was rolled back). */
+    reload: load,
     lastExportAt: () => state.lastExportAt,
 
     add(kind, input) {
@@ -410,8 +463,10 @@ export function createStore(storage, { now = () => new Date(), id = defaultId } 
       return true;
     },
 
-    exportFile() {
-      return buildExport(state.data, now());
+    /** The file for the family member. `despensa`, when given, goes after the four kinds. */
+    exportFile({ despensa } = {}) {
+      const data = Array.isArray(despensa) ? { ...state.data, [DESPENSA]: despensa } : state.data;
+      return buildExport(data, now());
     },
 
     markExported(when = now()) {
@@ -422,10 +477,10 @@ export function createStore(storage, { now = () => new Date(), id = defaultId } 
 
     readImport: (text) => parseImport(text),
 
-    /** Replaces the own data with an already validated payload. */
+    /** Replaces the own notes with an already validated payload. The despensa, if any, is not kept here. */
     restore(payload) {
       const next = clone(state);
-      next.data = clone(payload.data);
+      next.data = Object.fromEntries(KINDS.map((k) => [k, clone(payload.data[k])]));
       commit(next);
     },
 

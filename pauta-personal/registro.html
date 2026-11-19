@@ -20,6 +20,7 @@
     <symbol id="i-plate" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/></symbol>
     <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/></symbol>
     <symbol id="i-note" viewBox="0 0 24 24"><path d="M5 3.5h10l4 4V20.5H5z"/><path d="M14.5 3.5V8H19M8.5 12h7M8.5 16h5"/></symbol>
+    <symbol id="i-basket" viewBox="0 0 24 24"><path d="M3.5 10h17l-1.8 9.5H5.3z"/><path d="M8 10l3-6M16 10l-3-6M9 14v2.5M15 14v2.5"/></symbol>
     <symbol id="i-camera" viewBox="0 0 24 24"><path d="M3.5 8.5h3.5l1.8-2.5h6.4l1.8 2.5h3.5V19h-17z"/><circle cx="12" cy="13.2" r="3.4"/></symbol>
     <symbol id="i-home" viewBox="0 0 24 24"><path d="M3.5 11L12 4l8.5 7"/><path d="M6 9.5V20h12V9.5"/></symbol>
     <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></symbol>
@@ -71,6 +72,7 @@
       <ul class="tiles" aria-labelledby="g-notas">
         <li class="tile"><span class="ico"><svg class="i" aria-hidden="true"><use href="#i-cal"/></svg></span><a href="#controles">Mis controles</a><p class="d">Fechas de controles y exámenes</p><svg class="i go" aria-hidden="true"><use href="#i-right"/></svg></li>
         <li class="tile"><span class="ico"><svg class="i" aria-hidden="true"><use href="#i-note"/></svg></span><a href="#diario">Mi diario</a><p class="d">Qué comiste cada día</p><svg class="i go" aria-hidden="true"><use href="#i-right"/></svg></li>
+        <li class="tile"><span class="ico"><svg class="i" aria-hidden="true"><use href="#i-basket"/></svg></span><a href="despensa.html">Mi despensa</a><p class="d">Lo que hay en casa, con la tabla de tu pauta</p><svg class="i go" aria-hidden="true"><use href="#i-right"/></svg></li>
         <li class="tile"><span class="ico"><svg class="i" aria-hidden="true"><use href="#i-num"/></svg></span><a href="#mediciones">Presión y peso</a><p class="d">Los números tal como los mides</p><svg class="i go" aria-hidden="true"><use href="#i-right"/></svg></li>
         <li class="tile"><span class="ico"><svg class="i" aria-hidden="true"><use href="#i-q"/></svg></span><a href="#preguntas">Preguntas</a><p class="d">Dudas para el próximo control</p><svg class="i go" aria-hidden="true"><use href="#i-right"/></svg></li>
         <li class="tile"><span class="ico"><svg class="i" aria-hidden="true"><use href="#i-clip"/></svg></span><a href="#medico">Para el médico</a><p class="d">Hoja para imprimir o mostrar</p><svg class="i go" aria-hidden="true"><use href="#i-right"/></svg></li>
@@ -330,6 +332,7 @@
             <ul class="plain">
               <li>Tus anotaciones se guardan solo en este teléfono. No se envían a ninguna parte.</li>
               <li>Para que tu familiar las vea, exporta una copia y mándale el archivo. Quien reciba el archivo puede ver todo lo que contiene.</li>
+              <li>La copia incluye también tu despensa.</li>
               <li>En iPhone, instala esta página en la pantalla de inicio y exporta una copia seguido, porque el navegador puede borrar los datos de las páginas que no se usan por un tiempo.</li>
             </ul>
           </div>
@@ -359,7 +362,7 @@
                   <button type="button" id="restaurar" class="btn">Restaurar en este teléfono</button>
                   <button type="button" id="cancelar-archivo" class="btn">Cancelar</button>
                 </div>
-                <p class="small">«Restaurar» reemplaza todas las anotaciones de este teléfono por las del archivo.</p>
+                <p class="small">«Restaurar» reemplaza todas las anotaciones de este teléfono por las del archivo, y también la despensa si el archivo la trae.</p>
               </div>
               <p id="estado-archivo" class="status" role="status" aria-live="polite"></p>
             </div>
@@ -395,6 +398,7 @@
         <ul>
           <li><a href="index.html"><svg class="i" aria-hidden="true"><use href="#i-book"/></svg>Abrir mi pauta</a></li>
           <li><a href="etiqueta.html"><svg class="i" aria-hidden="true"><use href="#i-camera"/></svg>Leer una etiqueta</a></li>
+          <li><a href="despensa.html"><svg class="i" aria-hidden="true"><use href="#i-basket"/></svg>Mi despensa</a></li>
         </ul>
       </nav>
     </div>

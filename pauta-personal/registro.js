@@ -3,8 +3,9 @@
 import {
   createStore, orderControles, groupDiarioByDay, orderMediciones, orderPreguntas,
   buildReport, controlToIcs, icsFilename, formatDate, formatTimestamp, isoDate, addDays,
-  isValidDate, CONTROL_KINDS,
+  isValidDate, CONTROL_KINDS, restoreAll,
 } from "./registro-core.js";
+import { createDespensaStore, groupItems, COLUMNS, OTHERS_HEADING } from "./despensa-core.js";
 
 const $ = (id) => document.getElementById(id);
 const DASH = "—";
@@ -32,6 +33,8 @@ try {
 }
 
 const store = createStore(storage);
+// «Mi despensa» travels in the same file; its items stay in their own store.
+const despensa = createDespensaStore(storage);
 
 if (navigator.storage && typeof navigator.storage.persist === "function") {
   navigator.storage.persist().catch(() => { /* not granted: data stays, may be evicted */ });
@@ -391,7 +394,7 @@ function renderLastExport() {
 async function exportar() {
   const status = $("estado-exportar");
   status.textContent = "";
-  const { filename, text } = store.exportFile();
+  const { filename, text } = store.exportFile({ despensa: despensa.items() });
   let shared = false;
   try {
     const file = new File([text], filename, { type: "application/json" });
@@ -454,14 +457,22 @@ function soloVer() {
 function restaurar() {
   if (!pending) return;
   const payload = pending;
-  const ok = window.confirm(`Esto reemplaza todas las anotaciones de este teléfono por las del archivo exportado el ${formatTimestamp(payload.exportedAt)}. Lo que hay ahora se pierde. ¿Reemplazar?`);
+  const withPantry = Array.isArray(payload.data.despensa);
+  const what = withPantry ? "todas las anotaciones y la despensa" : "todas las anotaciones";
+  const ok = window.confirm(`Esto reemplaza ${what} de este teléfono por las del archivo exportado el ${formatTimestamp(payload.exportedAt)}. Lo que hay ahora se pierde. ¿Reemplazar?`);
   if (!ok) return;
-  if (safely(() => { store.restore(payload); return true; }, $("e-archivo"))) {
-    hideChoice();
-    for (const f of Object.values(forms)) f.reset();
+  const result = restoreAll(store, despensa, payload, storage);
+  if (!result.ok) {
     renderAll();
-    $("estado-archivo").textContent = "Listo: las anotaciones del archivo quedaron en este teléfono.";
+    showErrors($("e-archivo"), [{ message: result.error }]);
+    return;
   }
+  hideChoice();
+  for (const f of Object.values(forms)) f.reset();
+  renderAll();
+  $("estado-archivo").textContent = withPantry
+    ? "Listo: las anotaciones y la despensa del archivo quedaron en este teléfono."
+    : "Listo: las anotaciones del archivo quedaron en este teléfono. La despensa de este teléfono no cambió.";
 }
 
 function renderReceived() {
@@ -481,7 +492,28 @@ function renderReceived() {
     el("h3", null, "Diario"), parts.diario,
     el("h3", null, "Presión y peso anotados"), parts.mediciones,
     el("h3", null, "Preguntas para el control"), parts.preguntas,
+    Array.isArray(copy.data.despensa) && [el("h3", null, "Despensa"), receivedPantry(copy.data.despensa)],
   );
+}
+
+/** The received despensa, read only, grouped by the pauta's table exactly as on its own page. */
+function receivedPantry(items) {
+  if (!items.length) return empty("Todavía no hay nada anotado en la despensa.");
+  const line = (i) => el("li", null, i.name,
+    i.quantity && `. Cantidad: ${i.quantity}`,
+    i.note && `. Nota: ${i.note}`,
+    i.toBuy && ". Para comprar.");
+  const g = groupItems(items);
+  const column = (key) => (g[key].length ? [
+    el("h4", null, COLUMNS[key]),
+    g[key].map((x) => el("div", null, el("h5", null, x.group), el("ul", null, x.items.map(line)))),
+  ] : null);
+  // el() flattens one level only, so the nested parts are flattened here.
+  return el("div", null, [
+    column("preferir"),
+    column("limitar"),
+    g.otros.length ? [el("h4", null, OTHERS_HEADING), el("ul", null, g.otros.map(line))] : null,
+  ].flat(Infinity));
 }
 
 function borrarRecibida() {
@@ -522,7 +554,7 @@ function renderAll(focusId) {
   if (typeof focusId === "string" && $(focusId)) $(focusId).focus();
 }
 
-const warnings = [storageWarning, store.loadError()].filter(Boolean);
+const warnings = [storageWarning, store.loadError(), despensa.loadError()].filter(Boolean);
 showErrors($("avisos"), warnings.map((message) => ({ message })));
 
 initPeriod();

@@ -5,6 +5,10 @@ It also checks the «Leer una etiqueta» screen next to it (etiqueta.html and
 etiqueta-core.js): every pauta sentence it quotes is a sentence of the pauta,
 word for word, and it adds no clinical numbers or deciding wording either.
 
+And «Mi despensa» (despensa.html, despensa.js, despensa-core.js): the table it
+groups by is the pauta's «¿Qué alimentos elegir?» table, word for word, row by
+row; its own wording adds no clinical numbers and no judging words.
+
 Usage: python3 -I tests/pauta-personal/check_verbatim.py pauta-personal/index.html
 """
 import os
@@ -137,6 +141,66 @@ def check_label_screen(base, source_text):
     return problems, checked
 
 
+# «Mi despensa»: the pauta's own table, copied between these markers in despensa-core.js.
+DESPENSA_FORBIDDEN = LABEL_FORBIDDEN + ["demasiado", "exceso"]
+TABLE_START = "// <pauta-table>"
+TABLE_END = "// </pauta-table>"
+TABLE_ROW = re.compile(r'\{\s*group:\s*"([^"]+)",\s*preferir:\s*"([^"]+)",\s*limitar:\s*"([^"]+)"\s*\}')
+INDEX_ROW = re.compile(
+    r'<article class="group">\s*<h3>([^<]+)</h3>\s*'
+    r'<div class="half pref"><p class="tag">.*?</svg>([^<]+)</p><p>([^<]+)</p></div>\s*'
+    r'<div class="half lim"><p class="tag">.*?</svg>([^<]+)</p><p>([^<]+)</p></div>',
+    re.S,
+)
+
+
+def check_despensa(base, index_html):
+    """Returns (problems, table rows checked) for the despensa page and its scripts."""
+    problems = []
+    paths = {n: os.path.join(base, n) for n in ("despensa.html", "despensa.js", "despensa-core.js")}
+    for name, p in paths.items():
+        if not os.path.isfile(p):
+            problems.append(f"DESPENSA: missing {name}")
+    if problems:
+        return problems, 0
+    src = {}
+    for name, p in paths.items():
+        with open(p, encoding="utf-8") as fh:
+            src[name] = fh.read()
+    core = src["despensa-core.js"]
+    if TABLE_START not in core or TABLE_END not in core:
+        return ["DESPENSA: despensa-core.js has no pauta table markers"], 0
+    head, rest = core.split(TABLE_START, 1)
+    block, tail = rest.split(TABLE_END, 1)
+    rows = TABLE_ROW.findall(block)
+    index_rows = [(g.strip(), pt.strip(), p.strip(), lt.strip(), l.strip()) for g, pt, p, lt, l in INDEX_ROW.findall(index_html)]
+    if not index_rows:
+        problems.append("DESPENSA: no «Qué elegir» table found in index.html")
+    if [(g, p, l) for g, p, l in rows] != [(g, p, l) for g, _, p, _, l in index_rows]:
+        problems.append("DESPENSA: the despensa table is not the pauta table, row by row")
+    for g, p, l in rows:
+        for sentence in (p, l):
+            if sentence not in SOURCE:
+                problems.append(f"DESPENSA: table sentence is not in the pauta: {sentence!r}")
+    labels = {(pt, lt) for _, pt, _, lt, _ in index_rows}
+    for pt, lt in labels:
+        for word in (pt, lt):
+            if f'"{word}"' not in head + tail:
+                problems.append(f"DESPENSA: column heading is not the pauta's word: {word!r}")
+    # Everything outside the pauta's table is the screen's own wording.
+    own = page_text(src["despensa.html"])
+    for q in re.findall(r"«([^»]+\.)»", own):
+        if q not in SOURCE:
+            problems.append(f"DESPENSA: quoted text is not a pauta sentence: {q!r}")
+    for unit in FORBIDDEN.findall(own):
+        problems.append(f"DESPENSA: FORBIDDEN UNIT: {unit}")
+    low = " ".join([own, src["despensa.js"], head, tail]).lower()
+    for p in DESPENSA_FORBIDDEN:
+        if p in low:
+            problems.append(f"DESPENSA: FORBIDDEN PHRASE: {p}")
+    return problems, len(rows)
+
+
 def main(path):
     with open(path, encoding="utf-8") as fh:
         html = fh.read()
@@ -161,13 +225,17 @@ def main(path):
     label_problems, quotes = check_label_screen(os.path.dirname(path), text)
     for p in label_problems:
         print(p)
+    despensa_problems, rows = check_despensa(os.path.dirname(path), html)
+    for p in despensa_problems:
+        print(p)
     print(
         f"{len(SOURCE) - len(missing)}/{len(SOURCE)} source sentences present; "
         f"forbidden units: {len(numbers)}; sections: {len(SECTIONS) - len(no_section)}/{len(SECTIONS)}; "
         f"nav links: {len(SECTIONS) - len(no_link)}/{len(SECTIONS)}; forbidden phrases: {len(phrases)}; "
-        f"label screen: {quotes} pauta quotes checked, {len(label_problems)} problems"
+        f"label screen: {quotes} pauta quotes checked, {len(label_problems)} problems; "
+        f"despensa: {rows} pauta table rows checked, {len(despensa_problems)} problems"
     )
-    return 1 if missing or numbers or no_section or no_link or phrases or label_problems else 0
+    return 1 if missing or numbers or no_section or no_link or phrases or label_problems or despensa_problems else 0
 
 
 if __name__ == "__main__":
