@@ -66,6 +66,7 @@
 
       <h2 class="group-h" id="g-pauta">Tu pauta</h2>
       <ul class="tiles" aria-labelledby="g-pauta">
+        <li class="tile"><span class="ico"><svg class="i" aria-hidden="true"><use href="#i-clip"/></svg></span><a href="#alta">Indicación médica del alta</a><p class="d">19 de noviembre de 2026</p><svg class="i go" aria-hidden="true"><use href="#i-right"/></svg></li>
         <li class="tile"><span class="ico"><svg class="i" aria-hidden="true"><use href="#i-list"/></svg></span><a href="#indicaciones">Indicaciones</a><p class="d">El objetivo y las indicaciones generales</p><svg class="i go" aria-hidden="true"><use href="#i-right"/></svg></li>
         <li class="tile"><span class="ico"><svg class="i" aria-hidden="true"><use href="#i-basket"/></svg></span><a href="#elegir">Qué elegir</a><p class="d">Preferir y limitar, por grupo de alimentos</p><svg class="i go" aria-hidden="true"><use href="#i-right"/></svg></li>
         <li class="tile"><span class="ico"><svg class="i" aria-hidden="true"><use href="#i-plate"/></svg></span><a href="#dia">Un día de ejemplo</a><p class="d">Desayuno, almuerzo, once, cena y colación</p><svg class="i go" aria-hidden="true"><use href="#i-right"/></svg></li>
@@ -104,6 +105,24 @@
     <div class="screen">
       <div class="sections">
 
+        <!-- S23: the medical indication of the discharge, as written. Nothing else here. -->
+        <section id="alta" data-route aria-labelledby="t-alta">
+          <nav class="crumbs" aria-label="Estás en"><ol><li><a href="#inicio"><svg class="i" aria-hidden="true"><use href="#i-home"/></svg>Mi pauta</a></li><li><span aria-current="page">Indicación médica del alta</span></li></ol></nav>
+          <div class="sec-head">
+            <h2 id="t-alta" tabindex="-1">Indicación médica del alta</h2>
+            <button type="button" class="speak" data-target="alta"><svg class="i" aria-hidden="true"><use href="#i-speaker"/></svg><span>Escuchar</span></button>
+          </div>
+          <div class="card measure alta">
+            <p class="fecha"><time datetime="2026-11-19">19 de noviembre de 2026</time></p>
+            <blockquote><p>Régimen renal hiposódico, bajo en potasio y fósforo.</p></blockquote>
+            <p>Pregunta a tu equipo cómo se combina con esta pauta.</p>
+          </div>
+          <nav class="pager" aria-label="Seguir leyendo">
+            <a class="next-link" href="#indicaciones"><span><span class="k">Siguiente</span> <span class="n">Indicaciones</span></span><svg class="i" aria-hidden="true"><use href="#i-right"/></svg></a>
+            <a class="home" href="#inicio"><svg class="i" aria-hidden="true"><use href="#i-home"/></svg><span class="k">Volver al inicio</span></a>
+          </nav>
+        </section>
+
         <section id="indicaciones" data-route aria-labelledby="t-indicaciones">
           <nav class="crumbs" aria-label="Estás en"><ol><li><a href="#inicio"><svg class="i" aria-hidden="true"><use href="#i-home"/></svg>Mi pauta</a></li><li><span aria-current="page">Indicaciones</span></li></ol></nav>
           <div class="sec-head">
@@ -124,6 +143,7 @@
             </ul>
           </div>
           <nav class="pager" aria-label="Seguir leyendo">
+            <a href="#alta"><svg class="i" aria-hidden="true"><use href="#i-left"/></svg><span><span class="k">Anterior</span> <span class="n">Indicación médica del alta</span></span></a>
             <a class="next-link" href="#elegir"><span><span class="k">Siguiente</span> <span class="n">Qué elegir</span></span><svg class="i" aria-hidden="true"><use href="#i-right"/></svg></a>
             <a class="home" href="#inicio"><svg class="i" aria-hidden="true"><use href="#i-home"/></svg><span class="k">Volver al inicio</span></a>
           </nav>
@@ -334,6 +354,7 @@
       <nav class="siblings" aria-labelledby="sib-pauta">
         <h2 id="sib-pauta">Tu pauta</h2>
         <ul>
+          <li><a href="#alta">Indicación médica del alta</a></li>
           <li><a href="#indicaciones">Indicaciones</a></li>
           <li><a href="#elegir">Qué elegir</a></li>
           <li><a href="#dia">Un día de ejemplo</a></li>

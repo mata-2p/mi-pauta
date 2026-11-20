@@ -13,6 +13,8 @@ const {
   SI, NO, ILEGIBLE, UI_COPY,
   UNREAD_SODIO, UNREAD_POTASIO, CRITICAL, parseSodium, formatMg, sodiumEcho, sodiumError,
   readLine, preChecked, missingChoices,
+  SAL_LIGHT, CATEGORY, CATEGORIES, NINGUNA, UNREAD_SAL_LIGHT, UNREAD_CATEGORIA, PAUTA_CARNES, PAUTA_BEBIDAS,
+  PAUTA_DISMINUIR, CATEGORY_LINES, categoryReadLine, quoteLine,
 } = core;
 
 const read = (p) => readFileSync(here(p), "utf8");
@@ -231,11 +233,13 @@ test("S22a: both unread give both check lines and no neutral line", () => {
 
 test("S22a: confirmed no and no se pudo leer never give the same result", () => {
   for (const key of CRITICAL) {
-    const no = phrasesFor(confirmed({ [key]: NO }));
+    // For the product type, «no» is «Ninguna de estas».
+    const no = phrasesFor(confirmed({ [key]: key === "categoria_impresa" ? NINGUNA : NO }));
     const unread = phrasesFor(confirmed({ [key]: ILEGIBLE }));
     assert.notDeepEqual(no, unread, key);
   }
-  assert.deepEqual(CRITICAL, ["alto_en_sodio", "cloruro_de_potasio"]);
+  // S24: the two new answers are chosen actively too.
+  assert.deepEqual(CRITICAL, ["alto_en_sodio", "cloruro_de_potasio", "dice_sal_light", "categoria_impresa"]);
 });
 
 test("S22a: a sí in one field and an unread other field show the pauta sentence and the check line", () => {
@@ -331,16 +335,17 @@ test("S22d: readLine says what was read, in the three cases", () => {
 });
 
 test("S22d: missingChoices blocks confirmation until both critical answers are chosen", () => {
-  const others = { alto_en_azucares: NO, alto_en_grasas_saturadas: NO, alto_en_calorias: NO };
+  // S24: the two new answers are given here so this keeps checking the S22 pair.
+  const others = { alto_en_azucares: NO, alto_en_grasas_saturadas: NO, alto_en_calorias: NO, dice_sal_light: NO, categoria_impresa: NINGUNA };
   const none = missingChoices(others);
-  assert.deepEqual(none.map((m) => m.key), CRITICAL);
+  assert.deepEqual(none.map((m) => m.key), ["alto_en_sodio", "cloruro_de_potasio"]);
   assert.equal(none[0].message, "Toca tu respuesta para el sello «ALTO EN SODIO»: sí, no o no se pudo leer.");
   assert.equal(none[1].message, "Toca tu respuesta para «cloruro de potasio» en los ingredientes: sí, no o no se pudo leer.");
   assert.deepEqual(missingChoices({ ...others, alto_en_sodio: NO }).map((m) => m.key), ["cloruro_de_potasio"]);
   assert.deepEqual(missingChoices({ ...others, alto_en_sodio: ILEGIBLE, cloruro_de_potasio: SI }), []);
   assert.deepEqual(missingChoices({ ...others, alto_en_sodio: "x", cloruro_de_potasio: SI }).map((m) => m.key), ["alto_en_sodio"]);
   // The other seals keep their old message.
-  assert.deepEqual(missingChoices({ alto_en_sodio: NO, cloruro_de_potasio: NO }).map((m) => m.message),
+  assert.deepEqual(missingChoices({ alto_en_sodio: NO, cloruro_de_potasio: NO, dice_sal_light: NO, categoria_impresa: NINGUNA }).map((m) => m.message),
     ["Elige una respuesta para «ALTO EN AZÚCARES».", "Elige una respuesta para «ALTO EN GRASAS SATURADAS».", "Elige una respuesta para «ALTO EN CALORÍAS»."]);
 });
 
@@ -503,4 +508,209 @@ test("the notice key is v2 (shown again after the privacy change) and is not one
 test("S22c: parseSodium rejects full-width digits, exponent, sign and comma groups", () => {
   for (const t of ["２５０", "1e3", "+5", "-5", "1,250", "12.5.0", "1.2500"]) assert.deepEqual(parseSodium(t), { ok: false }, t);
   assert.deepEqual(parseSodium("001250"), { ok: true, value: 1250 });
+});
+
+// --- S24: «sal light» on the front, and the product type the package prints ----------
+
+const indexHtml = read("index.html");
+// A word or phrase of the closed list, whole: «sopas instantáneas» never matches «sopaipillas».
+const hasWords = (text, words) => new RegExp(`(?<!\\p{L})${words}(?!\\p{L})`, "iu").test(text);
+const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const keysOf = (list) => list.map((it) => it.key);
+const messagesOf = (list) => list.map((it) => it.message);
+
+test("S24: the closed list of product types is the pauta's own words, in its order", () => {
+  assert.deepEqual(CATEGORIES, ["cecinas", "vienesas", "hamburguesas procesadas", "nuggets", "caldos en cubo",
+    "sopas instantáneas", "snacks salados", "conservas", "salsas comerciales"]);
+  assert.equal(NINGUNA, "ninguna");
+  assert.equal(SAL_LIGHT.key, "dice_sal_light");
+  assert.equal(CATEGORY.key, "categoria_impresa");
+});
+
+test("S24: the three pauta lines are pinned word for word", () => {
+  assert.equal(PAUTA_CARNES, "Cecinas, vienesas, hamburguesas procesadas, nuggets y carnes muy saladas.");
+  assert.equal(PAUTA_BEBIDAS, "Bebidas energéticas, sopas instantáneas y exceso de bebidas azucaradas.");
+  assert.equal(PAUTA_DISMINUIR, "Disminuir cecinas, caldos en cubo, sopas instantáneas, snacks salados, conservas, salsas comerciales y comida rápida.");
+});
+
+const presionHtml = () => indexHtml.split('<section id="presion"')[1].split("</section>")[0];
+
+test("S24: each mapped line is in index.html where it says, and names its product type", () => {
+  for (const c of CATEGORIES) {
+    const lines = CATEGORY_LINES[c];
+    assert.ok(Array.isArray(lines) && lines.length > 0, c);
+    for (const l of lines) {
+      assert.ok(pautaText.includes(l.text), `${c}: ${l.text}`);
+      assert.ok(hasWords(l.text, c), `${c} is not named in ${l.text}`);
+      if (l.grupo) {
+        // A cell of the «¿Qué alimentos elegir?» table: its group and its column.
+        const cell = new RegExp(`<h3>${esc(l.grupo)}</h3>[\\s\\S]*?<div class="half lim"><p class="tag">[\\s\\S]*?</svg>${esc(l.columna)}</p><p>${esc(l.text)}</p></div>`);
+        assert.match(indexHtml, cell, `${c}: ${l.grupo}`);
+        assert.equal(l.columna, "Limitar o evitar");
+        assert.equal(l.href, "index.html#elegir");
+      } else {
+        assert.ok(presionHtml().includes(`<li>${l.text}</li>`), `${c}: ${l.text}`);
+        assert.equal(l.href, "index.html#presion");
+      }
+    }
+  }
+});
+
+test("S24: no table cell or blood-pressure line that names a product type is left out", () => {
+  const cells = [...indexHtml.matchAll(/<div class="half lim"><p class="tag">[\s\S]*?<\/svg>[^<]+<\/p><p>([^<]+)<\/p><\/div>/g)].map((x) => x[1]);
+  const presion = [...presionHtml().matchAll(/<li>([^<]+)<\/li>/g)].map((x) => x[1]);
+  assert.ok(cells.length >= 7 && presion.length >= 4);
+  for (const c of CATEGORIES) {
+    const expected = [...cells, ...presion].filter((t) => hasWords(t, c));
+    assert.deepEqual(CATEGORY_LINES[c].map((l) => l.text), expected, c);
+  }
+});
+
+test("S24: «sopas instantáneas» never takes the line with «sopaipillas» or «productos instantáneos»", () => {
+  const pan = "Pan muy salado, sopaipillas y productos instantáneos.";
+  assert.ok(pautaText.includes(pan));
+  assert.equal(hasWords(pan, "sopas instantáneas"), false);
+  for (const c of CATEGORIES) assert.ok(!CATEGORY_LINES[c].some((l) => l.text === pan), c);
+  assert.deepEqual(CATEGORY_LINES["sopas instantáneas"].map((l) => l.text), [PAUTA_BEBIDAS, PAUTA_DISMINUIR]);
+  // «conserva» in the vegetable and fruit cells is not the word «conservas».
+  assert.deepEqual(CATEGORY_LINES.conservas.map((l) => l.text), [PAUTA_DISMINUIR]);
+  assert.deepEqual(CATEGORY_LINES["caldos en cubo"].map((l) => l.text), [PAUTA_DISMINUIR]);
+  assert.deepEqual(CATEGORY_LINES.cecinas.map((l) => l.text), [PAUTA_CARNES, PAUTA_DISMINUIR]);
+  for (const c of ["vienesas", "hamburguesas procesadas", "nuggets"]) assert.deepEqual(CATEGORY_LINES[c].map((l) => l.text), [PAUTA_CARNES], c);
+  for (const c of ["snacks salados", "salsas comerciales"]) assert.deepEqual(CATEGORY_LINES[c].map((l) => l.text), [PAUTA_DISMINUIR], c);
+});
+
+test("S24: quoteLine shows a table cell with its group and column, and a sentence as it is", () => {
+  assert.equal(quoteLine(CATEGORY_LINES.vienesas[0]),
+    "Carnes y proteínas — Limitar o evitar: «Cecinas, vienesas, hamburguesas procesadas, nuggets y carnes muy saladas.»");
+  assert.equal(quoteLine(CATEGORY_LINES["snacks salados"][0]),
+    "«Disminuir cecinas, caldos en cubo, sopas instantáneas, snacks salados, conservas, salsas comerciales y comida rápida.»");
+  assert.equal(quoteLine({ text: PAUTA_SODIO }), `«${PAUTA_SODIO}»`);
+});
+
+test("S24 (1): confirmed «sal light» sí shows the existing potassium sentence, once", () => {
+  const out = phrasesFor(confirmed({ dice_sal_light: SI, categoria_impresa: NINGUNA }));
+  assert.deepEqual(out.map((p) => p.text), [PAUTA_POTASIO]);
+  assert.equal(out[0].pauta, true);
+  assert.equal(out[0].href, "index.html#indicaciones");
+  const both = phrasesFor(confirmed({ cloruro_de_potasio: SI, dice_sal_light: SI, categoria_impresa: NINGUNA }));
+  assert.deepEqual(both.map((p) => p.text), [PAUTA_POTASIO]);
+});
+
+test("S24 (1): «sal light» no shows nothing for it; unread shows the calm front check line", () => {
+  assert.deepEqual(phrasesFor(confirmed({ dice_sal_light: NO, categoria_impresa: NINGUNA })).map((p) => p.text), [NEUTRAL]);
+  assert.equal(UNREAD_SAL_LIGHT, "Revisa en el frente del envase si dice «sal light».");
+  const out = phrasesFor(confirmed({ dice_sal_light: ILEGIBLE, categoria_impresa: NINGUNA }));
+  assert.deepEqual(out.map((p) => p.text), [UNREAD_SAL_LIGHT]);
+  assert.equal(out[0].kind, "revisar");
+  assert.equal(out[0].pauta, false);
+});
+
+test("S24 (2): each confirmed product type shows only the pauta lines that name it", () => {
+  for (const c of CATEGORIES) {
+    const out = phrasesFor(confirmed({ dice_sal_light: NO, categoria_impresa: c }));
+    assert.deepEqual(out.map((p) => p.text), CATEGORY_LINES[c].map((l) => l.text), c);
+    for (const p of out) {
+      assert.equal(p.pauta, true);
+      assert.equal(p.kind, "pauta");
+      assert.ok(pautaText.includes(p.text));
+    }
+  }
+});
+
+test("S24 (2): «Ninguna de estas» shows nothing for it; unread is never shown as ninguna", () => {
+  assert.deepEqual(phrasesFor(confirmed({ dice_sal_light: NO, categoria_impresa: NINGUNA })).map((p) => p.text), [NEUTRAL]);
+  const unread = phrasesFor(confirmed({ dice_sal_light: NO, categoria_impresa: ILEGIBLE }));
+  assert.deepEqual(unread.map((p) => p.text), [UNREAD_CATEGORIA]);
+  assert.equal(unread[0].kind, "revisar");
+});
+
+test("S24: a value outside the closed list shows nothing (no synonyms, no case games)", () => {
+  for (const v of ["salchicha", "salchichas", "Cecinas", "sopa", "sopaipillas", "embutidos", "", null, undefined, "conserva"]) {
+    assert.deepEqual(phrasesFor(confirmed({ dice_sal_light: NO, categoria_impresa: v })).map((p) => p.text), [NEUTRAL], String(v));
+  }
+});
+
+test("S24: every line appears once even when several answers point at it, in screen order", () => {
+  const out = phrasesFor(confirmed({
+    alto_en_sodio: SI, cloruro_de_potasio: SI, dice_sal_light: SI, categoria_impresa: "cecinas", sodio_mg_100: 900,
+  }));
+  assert.deepEqual(out.map((p) => p.text), [PAUTA_SODIO, PAUTA_POTASIO, PAUTA_CARNES, PAUTA_DISMINUIR]);
+  assert.equal(new Set(out.map((p) => p.text)).size, out.length);
+  const unread = phrasesFor(confirmed({ alto_en_sodio: ILEGIBLE, cloruro_de_potasio: ILEGIBLE, dice_sal_light: ILEGIBLE, categoria_impresa: ILEGIBLE }));
+  assert.deepEqual(unread.map((p) => p.text), [UNREAD_SODIO, UNREAD_POTASIO, UNREAD_SAL_LIGHT, UNREAD_CATEGORIA]);
+});
+
+test("S24: nothing is said before confirmation: the two new answers are never pre-checked", () => {
+  const values = readingToForm(reading({ dice_sal_light: SI, categoria_impresa: "cecinas" }));
+  const checked = preChecked(values);
+  assert.ok(!("dice_sal_light" in checked) && !("categoria_impresa" in checked));
+  assert.deepEqual(keysOf(missingChoices(checked)), ["alto_en_sodio", "cloruro_de_potasio", "dice_sal_light", "categoria_impresa"]);
+});
+
+test("S24: readingToForm carries the two new answers, rejects values outside the list, tolerates an older reader", () => {
+  const f = readingToForm(reading({ dice_sal_light: ILEGIBLE, categoria_impresa: "sopas instantáneas" }));
+  assert.equal(f.dice_sal_light, ILEGIBLE);
+  assert.equal(f.categoria_impresa, "sopas instantáneas");
+  assert.equal(readingToForm(reading({ dice_sal_light: SI, categoria_impresa: NINGUNA })).categoria_impresa, NINGUNA);
+  for (const bad of [{ dice_sal_light: "si" }, { dice_sal_light: true }, { categoria_impresa: "salchichas" },
+    { categoria_impresa: "Cecinas" }, { categoria_impresa: 3 }, { categoria_impresa: null }]) {
+    assert.equal(readingToForm(reading({ dice_sal_light: NO, categoria_impresa: NINGUNA, ...bad })), null, JSON.stringify(bad));
+  }
+  // A reader without the two fields: nothing is read for them, and the person still answers.
+  const old = readingToForm(reading());
+  assert.ok(!("dice_sal_light" in old) && !("categoria_impresa" in old));
+});
+
+test("S24: «Se leyó» for the two new answers", () => {
+  assert.equal(readLine(SI), "Se leyó: sí");
+  assert.equal(categoryReadLine("cecinas"), "Se leyó: cecinas");
+  assert.equal(categoryReadLine("sopas instantáneas"), "Se leyó: sopas instantáneas");
+  assert.equal(categoryReadLine(NINGUNA), "Se leyó: ninguna de estas");
+  assert.equal(categoryReadLine(ILEGIBLE), "Se leyó: no se pudo leer");
+  assert.equal(categoryReadLine("salchichas"), "");
+  assert.equal(categoryReadLine(undefined), "");
+});
+
+test("S24: confirm waits for both new answers, each with its own message", () => {
+  const rest = { alto_en_sodio: NO, alto_en_azucares: NO, alto_en_grasas_saturadas: NO, alto_en_calorias: NO, cloruro_de_potasio: NO };
+  const missing = missingChoices(rest);
+  assert.deepEqual(keysOf(missing), ["dice_sal_light", "categoria_impresa"]);
+  assert.deepEqual(messagesOf(missing), [
+    "Toca tu respuesta para «sal light» o «+ potasio» en el frente del envase: sí, no o no se pudo leer.",
+    "Elige el tipo de producto escrito en el envase, «Ninguna de estas» o «No se pudo leer».",
+  ]);
+  assert.deepEqual(keysOf(missingChoices({ ...rest, dice_sal_light: ILEGIBLE })), ["categoria_impresa"]);
+  assert.deepEqual(keysOf(missingChoices({ ...rest, dice_sal_light: NO, categoria_impresa: "salchichas" })), ["categoria_impresa"]);
+  for (const v of [...CATEGORIES, NINGUNA, ILEGIBLE]) {
+    assert.deepEqual(missingChoices({ ...rest, dice_sal_light: SI, categoria_impresa: v }), [], v);
+  }
+});
+
+test("S24: etiqueta.html has the two new questions, unchecked, labelled, with the closed list", () => {
+  const html = read("etiqueta.html");
+  assert.ok(!/<input[^>]*type="radio"[^>]*\bchecked\b/.test(html));
+  assert.match(html, /id="leido-dice_sal_light"/);
+  assert.match(html, /id="leido-categoria_impresa"/);
+  const sal = [...html.matchAll(/<input id="([^"]+)" name="dice_sal_light" type="radio" value="([^"]+)"/g)].map((x) => x[2]);
+  assert.deepEqual(sal, [SI, NO, ILEGIBLE]);
+  const cat = [...html.matchAll(/<input id="([^"]+)" name="categoria_impresa" type="radio" value="([^"]+)"/g)];
+  assert.deepEqual(cat.map((x) => x[2]), [...CATEGORIES, NINGUNA, ILEGIBLE]);
+  for (const [, id] of cat) assert.match(html, new RegExp(`<label for="${id}">[^<]+</label>`), id);
+  assert.match(html, /<label for="c-ninguna">Ninguna de estas<\/label>/);
+  assert.match(html, /<label for="c-nl">No se pudo leer<\/label>/);
+  assert.match(htmlText(html), /«sal light»/);
+});
+
+test("S24: the new copy has no judging words and no color names", () => {
+  const copy = [UNREAD_SAL_LIGHT, UNREAD_CATEGORIA, SAL_LIGHT.label, CATEGORY.label,
+    ...messagesOf(missingChoices({})), ...CATEGORIES.map(categoryReadLine), categoryReadLine(NINGUNA),
+    htmlText(read("etiqueta.html"))].join(" \n ");
+  const low = copy.replace(/«ALTO EN [A-ZÁÉÍÓÚ ]+»/g, "«sello»").toLowerCase();
+  for (const w of ["puedes comer", "normal", "alto", "bajo", "riesgo", "elevad", "peligro", "exceso", "prohibido", "demasiado", "rojo", "verde"]) {
+    assert.ok(!new RegExp(`\\b${w}`).test(low), w);
+  }
+  const s24Messages = messagesOf(missingChoices({})).slice(-2);
+  for (const t of [UNREAD_SAL_LIGHT, UNREAD_CATEGORIA, ...s24Messages]) assert.ok(UI_COPY.includes(t), t);
+  for (const l of Object.values(CATEGORY_LINES).flat()) assert.ok(UI_COPY.includes(l.text), l.text);
 });

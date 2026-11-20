@@ -5,6 +5,7 @@ import {
   READER_URL, NOTICE_KEY, TIMEOUT_MS, SEALS, POTASSIUM, SODIUM, SI, NO, ILEGIBLE, CRITICAL,
   PREPARE_FAILED, phrasesFor, failureMessage, readingToForm, fitSize, encodeWithin, jpegHasApp1,
   parseSodium, formatMg, sodiumEcho, sodiumError, readLine, preChecked, missingChoices,
+  SAL_LIGHT, CATEGORY, NINGUNA, categoryReadLine, quoteLine,
 } from "./etiqueta-core.js";
 
 const $ = (id) => document.getElementById(id);
@@ -227,6 +228,13 @@ async function send() {
 // --- Confirm -------------------------------------------------------------------
 
 const ANSWER_TEXT = { [SI]: "Sí", [NO]: "No", [ILEGIBLE]: "No se pudo leer" };
+// Every radio question of the form, in screen order.
+const RADIO_FIELDS = [...SEALS, POTASSIUM, SAL_LIGHT, CATEGORY];
+/** The product type as confirmed: the radio's own label («Cecinas», «Ninguna de estas»…). */
+const categoryText = (value) => {
+  const r = form.querySelector(`input[name="${CATEGORY.key}"][value="${CSS.escape(value)}"]`);
+  return r && r.labels.length ? r.labels[0].textContent : value === NINGUNA ? "Ninguna de estas" : value;
+};
 const sodiumInput = (key) => form.elements.namedItem(key);
 const echoFor = (key) => $(key === "sodio_mg_100" ? "eco-sodio-100" : "eco-sodio-porcion");
 const labelFor = (key) => SODIUM.find((s) => s.key === key).label;
@@ -257,15 +265,17 @@ function updateEcho(key, strict) {
 
 function fillForm(values) {
   form.reset();
-  // The two critical answers are never pre-checked: the reading is only shown.
+  // The critical answers are never pre-checked: the reading is only shown.
   const checked = preChecked(values);
-  for (const { key } of [...SEALS, POTASSIUM]) {
+  for (const { key } of RADIO_FIELDS) {
     for (const r of form.querySelectorAll(`input[name="${key}"]`)) {
       r.checked = r.value === checked[key];
       r.removeAttribute("aria-invalid");
     }
   }
-  for (const key of CRITICAL) $(`leido-${key}`).textContent = readLine(values[key]);
+  for (const key of CRITICAL) {
+    $(`leido-${key}`).textContent = key === CATEGORY.key ? categoryReadLine(values[key]) : readLine(values[key]);
+  }
   for (const { key } of SODIUM) {
     sodiumInput(key).value = values[key];
     sodiumInput(key).removeAttribute("aria-invalid");
@@ -276,7 +286,7 @@ function fillForm(values) {
 
 function readForm() {
   const values = {};
-  for (const { key } of [...SEALS, POTASSIUM]) {
+  for (const { key } of RADIO_FIELDS) {
     const checked = form.querySelector(`input[name="${key}"]:checked`);
     if (checked) values[key] = checked.value;
   }
@@ -295,6 +305,8 @@ function renderResult(values) {
   const items = [
     ...SEALS.map(({ key, label }) => `Sello ${label}: ${ANSWER_TEXT[values[key]]}`),
     `${POTASSIUM.label}: ${ANSWER_TEXT[values[POTASSIUM.key]]}`,
+    `${SAL_LIGHT.label}: ${ANSWER_TEXT[values[SAL_LIGHT.key]]}`,
+    `${CATEGORY.label}: ${categoryText(values[CATEGORY.key])}`,
     ...SODIUM.map(({ key, label }) => `${label}: ${values[key] === null ? ILEGIBLE : `${formatMg(values[key])} miligramos`}`),
   ];
   $("confirmado").replaceChildren(...items.map((t) => el("li", null, t)));
@@ -304,7 +316,7 @@ function renderResult(values) {
   const check = phrases.filter((p) => p.kind === "revisar");
   $("frases").replaceChildren(...said.map((p) => (p.pauta
     ? el("div", { class: "cita" },
-      el("blockquote", null, el("p", null, `«${p.text}»`)),
+      el("blockquote", null, el("p", null, quoteLine(p))),
       el("p", null, el("a", { href: p.href }, "Ver en tu pauta")))
     : el("div", null,
       el("p", null, p.text),
@@ -321,6 +333,14 @@ for (const { key } of SODIUM) {
   sodiumInput(key).addEventListener("input", () => updateEcho(key, false));
   sodiumInput(key).addEventListener("change", () => updateEcho(key, true));
 }
+
+// An answer chosen after a blocked confirmation is no longer marked as missing.
+form.addEventListener("change", (ev) => {
+  const t = ev.target;
+  if (t instanceof HTMLInputElement && t.type === "radio") {
+    for (const r of form.querySelectorAll(`input[name="${t.name}"]`)) r.removeAttribute("aria-invalid");
+  }
+});
 
 form.addEventListener("submit", (ev) => {
   ev.preventDefault();

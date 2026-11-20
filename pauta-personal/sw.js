@@ -1,5 +1,5 @@
 // Bump VERSION whenever any cached file changes.
-var VERSION = "pauta-v7";
+var VERSION = "pauta-v8";
 var FILES = [
   "./",
   "index.html",

@@ -130,6 +130,29 @@
           <input id="s-potasio-no" name="cloruro_de_potasio" type="radio" value="no" aria-describedby="leido-cloruro_de_potasio"><label for="s-potasio-no">No</label>
           <input id="s-potasio-nl" name="cloruro_de_potasio" type="radio" value="no se pudo leer" aria-describedby="leido-cloruro_de_potasio"><label for="s-potasio-nl">No se pudo leer</label>
         </fieldset>
+        <fieldset class="choices">
+          <legend>¿El frente del envase dice «sal light» o «+ potasio»?</legend>
+          <p id="leido-dice_sal_light" class="leido"></p>
+          <input id="s-light-si" name="dice_sal_light" type="radio" value="sí" aria-describedby="leido-dice_sal_light"><label for="s-light-si">Sí</label>
+          <input id="s-light-no" name="dice_sal_light" type="radio" value="no" aria-describedby="leido-dice_sal_light"><label for="s-light-no">No</label>
+          <input id="s-light-nl" name="dice_sal_light" type="radio" value="no se pudo leer" aria-describedby="leido-dice_sal_light"><label for="s-light-nl">No se pudo leer</label>
+        </fieldset>
+        <fieldset class="choices categorias">
+          <legend>¿El envase tiene escrito uno de estos tipos de producto?</legend>
+          <p id="ayuda-categoria" class="small">Elige uno solo si esas palabras están escritas en el envase. Si no, elige «Ninguna de estas».</p>
+          <p id="leido-categoria_impresa" class="leido"></p>
+          <input id="c-cecinas" name="categoria_impresa" type="radio" value="cecinas" aria-describedby="ayuda-categoria leido-categoria_impresa"><label for="c-cecinas">Cecinas</label>
+          <input id="c-vienesas" name="categoria_impresa" type="radio" value="vienesas" aria-describedby="ayuda-categoria leido-categoria_impresa"><label for="c-vienesas">Vienesas</label>
+          <input id="c-hamburguesas" name="categoria_impresa" type="radio" value="hamburguesas procesadas" aria-describedby="ayuda-categoria leido-categoria_impresa"><label for="c-hamburguesas">Hamburguesas procesadas</label>
+          <input id="c-nuggets" name="categoria_impresa" type="radio" value="nuggets" aria-describedby="ayuda-categoria leido-categoria_impresa"><label for="c-nuggets">Nuggets</label>
+          <input id="c-caldos" name="categoria_impresa" type="radio" value="caldos en cubo" aria-describedby="ayuda-categoria leido-categoria_impresa"><label for="c-caldos">Caldos en cubo</label>
+          <input id="c-sopas" name="categoria_impresa" type="radio" value="sopas instantáneas" aria-describedby="ayuda-categoria leido-categoria_impresa"><label for="c-sopas">Sopas instantáneas</label>
+          <input id="c-snacks" name="categoria_impresa" type="radio" value="snacks salados" aria-describedby="ayuda-categoria leido-categoria_impresa"><label for="c-snacks">Snacks salados</label>
+          <input id="c-conservas" name="categoria_impresa" type="radio" value="conservas" aria-describedby="ayuda-categoria leido-categoria_impresa"><label for="c-conservas">Conservas</label>
+          <input id="c-salsas" name="categoria_impresa" type="radio" value="salsas comerciales" aria-describedby="ayuda-categoria leido-categoria_impresa"><label for="c-salsas">Salsas comerciales</label>
+          <input id="c-ninguna" name="categoria_impresa" type="radio" value="ninguna" aria-describedby="ayuda-categoria leido-categoria_impresa"><label for="c-ninguna">Ninguna de estas</label>
+          <input id="c-nl" name="categoria_impresa" type="radio" value="no se pudo leer" aria-describedby="ayuda-categoria leido-categoria_impresa"><label for="c-nl">No se pudo leer</label>
+        </fieldset>
 
         <fieldset>
           <legend>Sodio en la tabla nutricional, en miligramos</legend>
@@ -148,7 +171,7 @@
           </div>
         </fieldset>
 
-        <p id="h-confirmar" class="small">Para confirmar, toca tu respuesta en el sello «ALTO EN SODIO» y en «cloruro de potasio».</p>
+        <p id="h-confirmar" class="small">Para confirmar, toca tu respuesta en el sello «ALTO EN SODIO», en «cloruro de potasio», en «sal light» y en el tipo de producto.</p>
         <div id="e-confirmar" class="errors" role="alert"></div>
         <div class="actions">
           <button type="submit" class="btn primary" aria-describedby="h-confirmar">Confirmo lo que veo en el envase</button>

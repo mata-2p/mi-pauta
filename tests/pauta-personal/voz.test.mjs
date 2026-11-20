@@ -120,7 +120,7 @@ test("S22g: a section is read as heading, paragraphs and list items, each its ow
 });
 
 test("S22g: buttons, breadcrumbs, the pager and icons are not read", () => {
-  for (const id of ["indicaciones", "elegir", "dia", "presion", "cocina", "etiquetas", "seguimiento"]) {
+  for (const id of ["alta", "indicaciones", "elegir", "dia", "presion", "cocina", "etiquetas", "seguimiento"]) {
     const joined = voz.chunks(section(id)).join(" | ");
     for (const w of ["Escuchar", "Volver al inicio", "Siguiente", "Anterior", "Mi pauta"]) {
       assert.ok(!joined.includes(w), `«${w}» read in #${id}`);
@@ -150,6 +150,27 @@ test("S22g: every pauta sentence in the sections is still read, word for word", 
     "No usar 'sal light' o sustitutos de sal con potasio.",
     "Mantener los controles indicados después del alta para revisar la función renal y ajustar la alimentación según los nuevos exámenes.",
   ]) assert.ok(all7.includes(s), s);
+});
+
+test("S23: «Escuchar» reads the discharge indication block, quote as written, nothing else", () => {
+  const alta = section("alta");
+  assert.ok(alta, "no #alta block");
+  const btn = all(alta, (n) => n.tagName === "BUTTON" && hasClass(n, "speak"))[0];
+  assert.equal(btn?.getAttribute("data-target"), "alta");
+  const chunks = voz.chunks(alta);
+  assert.deepEqual(chunks, [
+    "Indicación médica del alta",
+    "19 de noviembre de 2026",
+    "Régimen renal hiposódico, bajo en potasio y fósforo.",
+    "Pregunta a tu equipo cómo se combina con esta pauta.",
+  ]);
+  assert.ok(chunks.includes("Régimen renal hiposódico, bajo en potasio y fósforo."));
+});
+
+test("S23: the discharge indication comes before the pauta's first section", () => {
+  const routes = all(doc, (n) => n.tagName === "SECTION" && n.hasAttribute("data-route")).map((n) => n.getAttribute("id"));
+  assert.equal(routes[0], "alta");
+  assert.equal(routes[1], "indicaciones");
 });
 
 test("S22g: app.js keeps es-CL, rate 0.9 and a cancellable queue", () => {

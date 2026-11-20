@@ -32,9 +32,22 @@ export const SODIUM = [
   { key: "sodio_mg_porcion", label: "Sodio por porción" },
 ];
 
-// The two answers the person must choose actively: they are never pre-checked
+// S24: «sal light» or «+ potasio» printed on the front of the package.
+export const SAL_LIGHT = { key: "dice_sal_light", label: "«sal light» o «+ potasio» en el frente del envase" };
+// S24: the product type the package prints, from a closed list in the pauta's own words.
+export const CATEGORY = { key: "categoria_impresa", label: "Tipo de producto escrito en el envase" };
+export const NINGUNA = "ninguna";
+export const CATEGORIES = [
+  "cecinas", "vienesas", "hamburguesas procesadas", "nuggets", "caldos en cubo",
+  "sopas instantáneas", "snacks salados", "conservas", "salsas comerciales",
+];
+const CATEGORY_ANSWERS = [...CATEGORIES, NINGUNA, ILEGIBLE];
+
+// The answers the person must choose actively: they are never pre-checked
 // from the reading, only shown as «Se leyó: …» next to the choices.
-export const CRITICAL = ["alto_en_sodio", POTASSIUM.key];
+export const CRITICAL = ["alto_en_sodio", POTASSIUM.key, SAL_LIGHT.key, CATEGORY.key];
+// Every yes/no/unread question of the form, in screen order.
+const YES_NO = [...SEALS, POTASSIUM, SAL_LIGHT];
 
 // --- Sentences of the pauta (index.html), copied word for word -------------------
 
@@ -42,11 +55,47 @@ export const CRITICAL = ["alto_en_sodio", POTASSIUM.key];
 export const PAUTA_SODIO = "Elegir productos con menor cantidad de sodio.";
 /** index.html, «Indicaciones generales» (section #indicaciones). */
 export const PAUTA_POTASIO = "No usar 'sal light' o sustitutos de sal con potasio.";
+/** index.html, «¿Qué alimentos elegir?» (section #elegir), Carnes y proteínas — Limitar o evitar. */
+export const PAUTA_CARNES = "Cecinas, vienesas, hamburguesas procesadas, nuggets y carnes muy saladas.";
+/** index.html, «¿Qué alimentos elegir?» (section #elegir), Bebidas — Limitar o evitar. */
+export const PAUTA_BEBIDAS = "Bebidas energéticas, sopas instantáneas y exceso de bebidas azucaradas.";
+/** index.html, «Para controlar la presión arterial» (section #presion). */
+export const PAUTA_DISMINUIR = "Disminuir cecinas, caldos en cubo, sopas instantáneas, snacks salados, conservas, salsas comerciales y comida rápida.";
+
+const LIMITAR = "Limitar o evitar";
+const LINE_CARNES = { text: PAUTA_CARNES, grupo: "Carnes y proteínas", columna: LIMITAR, href: "index.html#elegir" };
+const LINE_BEBIDAS = { text: PAUTA_BEBIDAS, grupo: "Bebidas", columna: LIMITAR, href: "index.html#elegir" };
+const LINE_DISMINUIR = { text: PAUTA_DISMINUIR, href: "index.html#presion" };
+
+/**
+ * S24: for each product type, the pauta lines that name it with those same words,
+ * in the order of the pauta. Nothing else: «conserva» in other cells is not
+ * «conservas», and «sopaipillas» is not a soup. The node tests pin this against index.html.
+ */
+export const CATEGORY_LINES = {
+  cecinas: [LINE_CARNES, LINE_DISMINUIR],
+  vienesas: [LINE_CARNES],
+  "hamburguesas procesadas": [LINE_CARNES],
+  nuggets: [LINE_CARNES],
+  "caldos en cubo": [LINE_DISMINUIR],
+  "sopas instantáneas": [LINE_BEBIDAS, LINE_DISMINUIR],
+  "snacks salados": [LINE_DISMINUIR],
+  conservas: [LINE_DISMINUIR],
+  "salsas comerciales": [LINE_DISMINUIR],
+};
+
+/** How a pauta line is shown: a table cell with its group and column, a sentence as it is. */
+export function quoteLine(p) {
+  return p.grupo ? `${p.grupo} — ${p.columna}: «${p.text}»` : `«${p.text}»`;
+}
+
 export const NEUTRAL = "Tu pauta no tiene una indicación sobre esto. Consulta con tu equipo tratante si tienes dudas.";
 
 // When a field could not be read: what to check on the package. Never a «no».
 export const UNREAD_SODIO = "No se pudo leer si tiene el sello «ALTO EN SODIO». Revísalo en el envase.";
 export const UNREAD_POTASIO = "No se pudo leer la lista de ingredientes completa. Revisa en el envase si dice «cloruro de potasio».";
+export const UNREAD_SAL_LIGHT = "Revisa en el frente del envase si dice «sal light».";
+export const UNREAD_CATEGORIA = "Revisa en el envase si dice qué tipo de producto es.";
 
 /** A confirmed sodium amount: a whole number of mg. Its size is never looked at. */
 const isConfirmedMg = (v) => typeof v === "number" && Number.isSafeInteger(v) && v >= 0;
@@ -62,12 +111,22 @@ const isConfirmedMg = (v) => typeof v === "number" && Number.isSafeInteger(v) &&
 export function phrasesFor(confirmed) {
   const c = confirmed || {};
   const out = [];
-  if (c.alto_en_sodio === SI || SODIUM.some(({ key }) => isConfirmedMg(c[key]))) {
-    out.push({ text: PAUTA_SODIO, pauta: true, kind: "pauta", href: "index.html#presion" });
+  // Each line once, even when two answers point at it (KCl and «sal light»).
+  const add = (p) => { if (!out.some((o) => o.text === p.text)) out.push(p); };
+  const pauta = (text, href, extra) => add({ text, pauta: true, kind: "pauta", href, ...extra });
+  const check = (text) => add({ text, pauta: false, kind: "revisar", href: "index.html#etiquetas" });
+  if (c.alto_en_sodio === SI || SODIUM.some(({ key }) => isConfirmedMg(c[key]))) pauta(PAUTA_SODIO, "index.html#presion");
+  if (c.alto_en_sodio === ILEGIBLE) check(UNREAD_SODIO);
+  if (c.cloruro_de_potasio === SI) pauta(PAUTA_POTASIO, "index.html#indicaciones");
+  if (c.cloruro_de_potasio === ILEGIBLE) check(UNREAD_POTASIO);
+  if (c.dice_sal_light === SI) pauta(PAUTA_POTASIO, "index.html#indicaciones");
+  if (c.dice_sal_light === ILEGIBLE) check(UNREAD_SAL_LIGHT);
+  if (CATEGORIES.includes(c.categoria_impresa)) {
+    for (const { text, href, grupo, columna } of CATEGORY_LINES[c.categoria_impresa]) {
+      pauta(text, href, grupo ? { grupo, columna } : {});
+    }
   }
-  if (c.alto_en_sodio === ILEGIBLE) out.push({ text: UNREAD_SODIO, pauta: false, kind: "revisar", href: "index.html#etiquetas" });
-  if (c.cloruro_de_potasio === SI) out.push({ text: PAUTA_POTASIO, pauta: true, kind: "pauta", href: "index.html#indicaciones" });
-  if (c.cloruro_de_potasio === ILEGIBLE) out.push({ text: UNREAD_POTASIO, pauta: false, kind: "revisar", href: "index.html#etiquetas" });
+  if (c.categoria_impresa === ILEGIBLE) check(UNREAD_CATEGORIA);
   if (!out.length) out.push({ text: NEUTRAL, pauta: false, kind: "neutral", href: "index.html#inicio" });
   return out;
 }
@@ -117,11 +176,18 @@ export function readLine(answer) {
   return Object.prototype.hasOwnProperty.call(READ_TEXT, answer) ? `Se leyó: ${READ_TEXT[answer]}` : "";
 }
 
-/** The radios to pre-check from the reading: every answer except the critical two. */
+const CATEGORY_READ = Object.fromEntries([...CATEGORIES.map((c) => [c, c]), [NINGUNA, "ninguna de estas"], [ILEGIBLE, ILEGIBLE]]);
+
+/** S24: «Se leyó: cecinas / ninguna de estas / no se pudo leer», next to the product type. */
+export function categoryReadLine(value) {
+  return Object.prototype.hasOwnProperty.call(CATEGORY_READ, value) ? `Se leyó: ${CATEGORY_READ[value]}` : "";
+}
+
+/** The radios to pre-check from the reading: every answer except the critical ones. */
 export function preChecked(values) {
   const v = values || {};
   const out = {};
-  for (const { key } of [...SEALS, POTASSIUM]) {
+  for (const { key } of YES_NO) {
     if (!CRITICAL.includes(key) && ANSWERS.includes(v[key])) out[key] = v[key];
   }
   return out;
@@ -130,6 +196,8 @@ export function preChecked(values) {
 const CHOOSE = {
   alto_en_sodio: "Toca tu respuesta para el sello «ALTO EN SODIO»: sí, no o no se pudo leer.",
   cloruro_de_potasio: "Toca tu respuesta para «cloruro de potasio» en los ingredientes: sí, no o no se pudo leer.",
+  dice_sal_light: "Toca tu respuesta para «sal light» o «+ potasio» en el frente del envase: sí, no o no se pudo leer.",
+  categoria_impresa: "Elige el tipo de producto escrito en el envase, «Ninguna de estas» o «No se pudo leer».",
 };
 
 /**
@@ -138,9 +206,11 @@ const CHOOSE = {
  */
 export function missingChoices(choices) {
   const c = choices || {};
-  return [...SEALS, POTASSIUM]
+  const missing = YES_NO
     .filter(({ key }) => !ANSWERS.includes(c[key]))
     .map(({ key, label }) => ({ key, message: CHOOSE[key] || `Elige una respuesta para ${label}.` }));
+  if (!CATEGORY_ANSWERS.includes(c[CATEGORY.key])) missing.push({ key: CATEGORY.key, message: CHOOSE[CATEGORY.key] });
+  return missing;
 }
 
 // --- Errors ---------------------------------------------------------------------
@@ -176,10 +246,12 @@ export const PREPARE_FAILED = "No se pudo preparar esta foto. Prueba con otra fo
 // Every sentence the screen can show from script, for the wording tests.
 export const UI_COPY = [
   ...Object.values(BY_STATUS), OFFLINE, GENERIC, PREPARE_FAILED,
-  PAUTA_SODIO, PAUTA_POTASIO, NEUTRAL, UNREAD_SODIO, UNREAD_POTASIO,
+  PAUTA_SODIO, PAUTA_POTASIO, PAUTA_CARNES, PAUTA_BEBIDAS, PAUTA_DISMINUIR, NEUTRAL,
+  UNREAD_SODIO, UNREAD_POTASIO, UNREAD_SAL_LIGHT, UNREAD_CATEGORIA,
   ...Object.values(CHOOSE), ...SODIUM.map((s) => sodiumError(s.label)),
   sodiumEcho(null), readLine(SI), readLine(NO), readLine(ILEGIBLE),
-  ...SEALS.map((s) => s.label), POTASSIUM.label, ...SODIUM.map((s) => s.label),
+  ...CATEGORY_ANSWERS.map(categoryReadLine),
+  ...SEALS.map((s) => s.label), POTASSIUM.label, SAL_LIGHT.label, CATEGORY.label, ...SODIUM.map((s) => s.label),
   SI, NO, ILEGIBLE,
 ];
 
@@ -209,6 +281,16 @@ export function readingToForm(r) {
   }
   if (!isAnswer(r[POTASSIUM.key])) return null;
   out[POTASSIUM.key] = r[POTASSIUM.key];
+  // S24: a reader from before S24 sends neither field; then nothing is read for
+  // them and the person still answers. A value that is there must be in its list.
+  if (SAL_LIGHT.key in r) {
+    if (!isAnswer(r[SAL_LIGHT.key])) return null;
+    out[SAL_LIGHT.key] = r[SAL_LIGHT.key];
+  }
+  if (CATEGORY.key in r) {
+    if (!CATEGORY_ANSWERS.includes(r[CATEGORY.key])) return null;
+    out[CATEGORY.key] = r[CATEGORY.key];
+  }
   for (const { key } of SODIUM) {
     if (!isAmount(r[key])) return null;
     out[key] = r[key] === null ? "" : amountText(r[key]);

@@ -93,6 +93,10 @@
 /* What the reader saw, next to the two answers the person must choose. */
 .leido { width: 100%; margin: 0 0 .2rem; color: var(--muted); font-weight: 700; }
 .leido:empty { display: none; }
+/* S24: the help line of the product type sits on its own row, above the choices. */
+.choices > .small { width: 100%; margin: 0 0 .2rem; }
+/* A long label («Hamburguesas procesadas») may wrap on a narrow phone, never overflow. */
+.categorias label { max-width: 100%; overflow-wrap: anywhere; }
 /* Repeats the whole mg that will be kept; an error reads as an error by its words and a heavier border. */
 .eco { margin: 0; min-height: 1.5em; color: var(--muted); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .eco.bad { color: var(--ink); font-weight: 700; padding: .3rem .6rem; border: 3px solid var(--ink); border-radius: var(--r-field); }

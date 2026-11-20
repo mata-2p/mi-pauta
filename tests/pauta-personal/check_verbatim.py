@@ -9,6 +9,10 @@ And «Mi despensa» (despensa.html, despensa.js, despensa-core.js): the table it
 groups by is the pauta's «¿Qué alimentos elegir?» table, word for word, row by
 row; its own wording adds no clinical numbers and no judging words.
 
+And the medical indication of the discharge (S23): one block before the pauta's
+first section with exactly its heading, its date, the indication as written and
+the line that sends the person to the team; nothing else.
+
 Usage: python3 -I tests/pauta-personal/check_verbatim.py pauta-personal/index.html
 """
 import os
@@ -53,6 +57,7 @@ SOURCE = [
 # Sections the page must offer (id -> nav label). The guides only reorganize the
 # pauta and Chilean labeling facts; they add no clinical limits.
 SECTIONS = {
+    "alta": "Indicación médica del alta",
     "indicaciones": "Indicaciones",
     "elegir": "Qué elegir",
     "dia": "Un día de ejemplo",
@@ -67,6 +72,21 @@ FORBIDDEN_PHRASES = ["puedes comer", "puede comer", "está permitido", "es segur
 
 # Units that would mean the page states a limit the nutritionist did not write.
 FORBIDDEN = re.compile(r"\b\d+\s*(mg|g|ml|mL|cc|kcal|litros?|L)\b")
+
+# S23: the medical indication of the discharge, as written, with its date. The
+# block holds these four lines, in this order, and nothing else.
+ALTA_ID = "alta"
+ALTA_QUOTE = "Régimen renal hiposódico, bajo en potasio y fósforo."
+ALTA = [
+    "Indicación médica del alta",
+    "19 de noviembre de 2026",
+    ALTA_QUOTE,
+    "Pregunta a tu equipo cómo se combina con esta pauta.",
+]
+
+# Words the page's own wording must not use. Pauta sentences and the alta quote
+# are exempt because they are copied as written.
+OWN_FORBIDDEN = re.compile(r"\bbajos?\b")
 
 
 class Text(HTMLParser):
@@ -100,6 +120,71 @@ def page_text(html):
     parser = Text()
     parser.feed(html)
     return re.sub(r"\s+", " ", " ".join(parser.parts))
+
+
+class Block(HTMLParser):
+    """Text pieces inside the element with a given id, without controls or icons."""
+
+    SKIP = {"button", "nav", "svg", "script", "style"}
+    VOID = {"br", "img", "input", "meta", "link", "hr", "use", "path", "circle", "rect", "source", "wbr"}
+
+    def __init__(self, target):
+        super().__init__()
+        self.target = target
+        self.depth = 0  # open elements inside the target, the target included
+        self.skip = 0
+        self.found = 0
+        self.parts = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag in self.VOID:
+            return
+        if self.depth:
+            self.depth += 1
+            if tag in self.SKIP or self.skip:
+                self.skip += 1
+        elif dict(attrs).get("id") == self.target:
+            self.depth = 1
+            self.found += 1
+
+    def handle_endtag(self, tag):
+        if tag in self.VOID or not self.depth:
+            return
+        if self.skip:
+            self.skip -= 1
+        self.depth -= 1
+
+    def handle_data(self, data):
+        if self.depth and not self.skip:
+            piece = re.sub(r"\s+", " ", data).strip()
+            if piece:
+                self.parts.append(piece)
+
+
+def check_alta(html, text):
+    """S23: returns (problems, lines found in order) for the discharge indication block."""
+    problems = []
+    block = Block(ALTA_ID)
+    block.feed(html)
+    if block.found != 1:
+        return [f"ALTA: expected one block id=\"{ALTA_ID}\", found {block.found}"], 0
+    if block.parts != ALTA:
+        problems.append(f"ALTA: the block must hold exactly {ALTA!r}, found {block.parts!r}")
+    found = sum(1 for a, b in zip(block.parts, ALTA) if a == b)
+    start = html.find(f'id="{ALTA_ID}"')
+    first = html.find("<section id=\"indicaciones\"")
+    if first < 0 or start > first:
+        problems.append("ALTA: the block is not before the pauta's first section")
+    if text.count(ALTA_QUOTE) != 1:
+        problems.append(f"ALTA: the indication must appear once, as written: {text.count(ALTA_QUOTE)}")
+    return problems, found
+
+
+def own_wording(text):
+    """The page text without the pauta sentences and the alta quote."""
+    for s in SOURCE + [ALTA_QUOTE]:
+        text = text.replace(s, " ")
+    return text
 
 
 def check_label_screen(base, source_text):
@@ -211,6 +296,8 @@ def main(path):
     no_section = [k for k in SECTIONS if f'<section id="{k}"' not in html]
     no_link = [k for k, label in SECTIONS.items() if f'<a href="#{k}">{label}</a>' not in html]
     phrases = [p for p in FORBIDDEN_PHRASES if p in text.lower()]
+    own_words = OWN_FORBIDDEN.findall(own_wording(text).lower())
+    alta_problems, alta_lines = check_alta(html, text)
 
     for s in missing:
         print("MISSING:", s)
@@ -222,6 +309,10 @@ def main(path):
         print("MISSING NAV LINK:", k)
     for p in phrases:
         print("FORBIDDEN PHRASE:", p)
+    for w in own_words:
+        print("FORBIDDEN WORD outside the pauta:", w)
+    for p in alta_problems:
+        print(p)
     label_problems, quotes = check_label_screen(os.path.dirname(path), text)
     for p in label_problems:
         print(p)
@@ -233,9 +324,12 @@ def main(path):
         f"forbidden units: {len(numbers)}; sections: {len(SECTIONS) - len(no_section)}/{len(SECTIONS)}; "
         f"nav links: {len(SECTIONS) - len(no_link)}/{len(SECTIONS)}; forbidden phrases: {len(phrases)}; "
         f"label screen: {quotes} pauta quotes checked, {len(label_problems)} problems; "
-        f"despensa: {rows} pauta table rows checked, {len(despensa_problems)} problems"
+        f"despensa: {rows} pauta table rows checked, {len(despensa_problems)} problems; "
+        f"alta: {alta_lines}/{len(ALTA)} lines in order, {len(alta_problems)} problems; "
+        f"forbidden words outside the pauta: {len(own_words)}"
     )
-    return 1 if missing or numbers or no_section or no_link or phrases or label_problems or despensa_problems else 0
+    return 1 if (missing or numbers or no_section or no_link or phrases or label_problems
+                 or despensa_problems or alta_problems or own_words) else 0
 
 
 if __name__ == "__main__":
