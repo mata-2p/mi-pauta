@@ -60,17 +60,17 @@ const res = (status, type = "basic") => ({
   clone() { return { ...this, cloned: true }; },
 });
 
-test("S22f: VERSION is pauta-v9", () => {
-  assert.match(source, /var VERSION = "pauta-v9";/);
+test("S22f: VERSION is pauta-v10", () => {
+  assert.match(source, /var VERSION = "pauta-v10";/);
 });
 
-test("S22f: a 200 answer from this site is returned and cached under pauta-v9", async () => {
+test("S22f: a 200 answer from this site is returned and cached under pauta-v10", async () => {
   const sw = load(() => res(200));
   const { response } = await dispatch(sw, `${ORIGIN}/index.html`);
   assert.equal(response.status, 200);
   assert.equal(sw.puts.length, 1);
   assert.equal(sw.puts[0].url, `${ORIGIN}/index.html`);
-  assert.deepEqual(sw.opened, ["pauta-v9"]);
+  assert.deepEqual(sw.opened, ["pauta-v10"]);
 });
 
 test("S22f: a 404, 500, 206 or redirect answer is returned but never cached", async () => {

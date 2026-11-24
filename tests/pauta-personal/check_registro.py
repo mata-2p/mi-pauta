@@ -10,6 +10,11 @@ And «Mi despensa» (despensa.html): no judging words, a label on every control,
 nothing loaded from outside the site, no network at all in its scripts, and
 links to it from the pauta and from Mis anotaciones.
 
+And the date and time fields (S30): each sits in a .field, the ones that share a
+row sit in a .pair.datetime, and registro.css carries the WebKit/iOS rules that
+keep them inside the form (min-width 0, full width, border-box, tap height,
+value aligned left, min-width 0 on their wrappers).
+
 And the first-use guide (S26): its scripts (guia.js, guia-core.js) use no network
 and no judging words, and every page has the guide dialog without loading
 anything from outside.
@@ -204,6 +209,78 @@ def check_despensa_page(base, registro_page):
     return problems
 
 
+# S30: date and time fields. Pairs that share a row, and the CSS they rely on.
+DATETIME_PAIRS = [("c-date", "c-time"), ("m-date", "m-time"), ("p-from", "p-to")]
+DATETIME_INPUT = 'input[type="date"]'
+TIME_INPUT = 'input[type="time"]'
+DATETIME_RULES = {
+    "date/time inputs": ((DATETIME_INPUT, TIME_INPUT),
+                         ["min-width: 0", "width: 100%", "box-sizing: border-box", "min-height: var(--tap)"]),
+    "date/time value": (("::-webkit-date-and-time-value",), ["text-align: left"]),
+    "pair wrapper": ((".pair.datetime",), ["min-width: 0"]),
+    "field in a pair": ((".pair > .field",), ["min-width: 0"]),
+}
+
+
+class Ancestry(HTMLParser):
+    """Records, for each date or time input, the classes of the elements around it."""
+    VOID = {"input", "br", "img", "meta", "link", "hr", "source", "use"}
+
+    def __init__(self):
+        super().__init__()
+        self.stack = []
+        self.inputs = {}
+
+    def handle_starttag(self, tag, attrs):
+        a = dict(attrs)
+        if tag == "input" and a.get("type") in ("date", "time"):
+            self.inputs[a.get("id")] = [set((c or "").split()) for _, c in self.stack]
+        if tag not in self.VOID:
+            self.stack.append((tag, a.get("class")))
+
+    def handle_endtag(self, tag):
+        for i in range(len(self.stack) - 1, -1, -1):
+            if self.stack[i][0] == tag:
+                del self.stack[i:]
+                break
+
+
+def css_rules(css):
+    """(selector, declarations) for each rule, comments removed, nested at-rules flattened."""
+    css = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
+    return [(sel.strip(), re.sub(r"\s+", " ", body)) for sel, body in re.findall(r"([^{}]+)\{([^{}]*)\}", css)]
+
+
+def check_datetime(base, html):
+    """Returns the problems found in the date and time fields (S30)."""
+    problems = []
+    tree = Ancestry()
+    tree.feed(html)
+    if not tree.inputs:
+        problems.append("DATETIME: no date or time inputs in registro.html")
+    for iid, ancestors in tree.inputs.items():
+        if not ancestors or "field" not in ancestors[-1]:
+            problems.append(f"DATETIME: {iid} is not directly inside a .field")
+    for pair in DATETIME_PAIRS:
+        for iid in pair:
+            ancestors = tree.inputs.get(iid)
+            if ancestors is None:
+                problems.append(f"DATETIME: missing input {iid}")
+            elif len(ancestors) < 2 or not {"pair", "datetime"} <= ancestors[-2]:
+                problems.append(f"DATETIME: {iid} is not in a .pair.datetime")
+    with open(os.path.join(base, "registro.css"), encoding="utf-8") as fh:
+        rules = css_rules(fh.read())
+    for name, (selectors, needed) in DATETIME_RULES.items():
+        decls = " ".join(body for sel, body in rules if all(s in sel for s in selectors))
+        if not decls:
+            problems.append(f"DATETIME CSS: no rule for {name} ({', '.join(selectors)})")
+            continue
+        for d in needed:
+            if not re.search(re.escape(d) + r"\s*(;|$|!)", decls):
+                problems.append(f"DATETIME CSS: {name} lacks «{d}»")
+    return problems
+
+
 # The first-use guide: scripts and the pages that carry its dialog.
 GUIDE_SCRIPTS = ["guia.js", "guia-core.js"]
 GUIDE_PAGES = ["index.html", "registro.html", "despensa.html", "etiqueta.html"]
@@ -286,6 +363,8 @@ def main(path):
     problems += despensa_problems
     guide_problems = check_guide(base)
     problems += guide_problems
+    datetime_problems = check_datetime(base, html)
+    problems += datetime_problems
 
     for p in problems:
         print(p)
@@ -298,7 +377,8 @@ def main(path):
         f"fields without label: {len(unlabeled)}; "
         f"label page problems: {len(label_problems)}; "
         f"despensa page problems: {len(despensa_problems)}; "
-        f"guide problems: {len(guide_problems)}"
+        f"guide problems: {len(guide_problems)}; "
+        f"date/time problems: {len(datetime_problems)}"
     )
     return 1 if problems else 0
 

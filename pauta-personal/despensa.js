@@ -1,8 +1,8 @@
 // Mi despensa: DOM layer. All logic lives in despensa-core.js.
 // Data stays in this phone's localStorage. Nothing is sent anywhere.
 import {
-  createDespensaStore, pautaGroups, searchPauta, groupItems, shoppingList,
-  COLUMNS, COLUMN_KEYS, OTHERS_HEADING, TEXT, isPautaItem,
+  createDespensaStore, searchPauta, groupItems, shoppingList,
+  COLUMNS, OTHERS_HEADING, TEXT, isPautaItem, pickButton, renderPautaTable,
 } from "./despensa-core.js";
 
 const $ = (id) => document.getElementById(id);
@@ -90,15 +90,8 @@ const search = $("buscar");
 let choice = null; // { source: "pauta", group, column, name } | { source: "otro" }
 let editing = null; // item id
 
-function optionButton(o) {
-  return el("li", null, el("button", {
-    type: "button", class: "btn opt",
-    onclick: () => choose({ source: "pauta", ...o }),
-  },
-  sr(`${TEXT.pick}: `),
-  el("span", { class: "opt-name" }, o.name),
-  el("span", { class: "opt-where" }, `${o.group} · ${COLUMNS[o.column]}`)));
-}
+const pickFromPauta = (o) => choose({ source: "pauta", ...o });
+const optionButton = (o) => pickButton(el, o, pickFromPauta);
 
 function renderResults() {
   const q = search.value.trim();
@@ -112,14 +105,9 @@ function renderResults() {
   $("estado-busqueda").textContent = found.length ? TEXT.matches(found.length) : TEXT.noMatch;
 }
 
+// S27: one closed details per pauta group; the person opens the one they want.
 function renderFullTable() {
-  $("tabla-completa").replaceChildren(...pautaGroups().map((g) => el("div", { class: "tabla-g" },
-    el("h3", null, g.group),
-    COLUMN_KEYS.map((column) => [
-      el("p", { class: `tabla-col ${column}` }, COLUMNS[column]),
-      el("ul", { class: "opt-list" }, g[column].items.map((name) => optionButton({ group: g.group, column, name }))),
-    ]),
-  )));
+  $("tabla-completa").replaceChildren(...renderPautaTable(el, pickFromPauta));
 }
 
 function setStep(detail) {

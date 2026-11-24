@@ -501,3 +501,102 @@ test("if even the roll back cannot be written, the message does not claim nothin
   assert.equal(r.rolledBack, false);
   assert.doesNotMatch(r.error, /No se cambió nada/);
 });
+
+// --- S27: the full table in «Agregar», one closed group at a time -----------------------
+
+// A minimal element factory with the same call shape as el() in despensa.js:
+// h(tag, props, ...children). Nodes are plain objects the tests can walk.
+function h(tag, props, ...children) {
+  const kids = children.flat(Infinity).filter((c) => c != null && c !== false && c !== "");
+  return { tag, props: props || {}, children: kids };
+}
+const isNode = (n) => n && typeof n === "object" && "tag" in n;
+const textOfNode = (n) => (isNode(n) ? n.children.map(textOfNode).join("") : String(n));
+const classes = (n) => String(n.props.class || "").split(/\s+/);
+function findAll(n, pred, out = []) {
+  if (!isNode(n)) return out;
+  if (pred(n)) out.push(n);
+  for (const c of n.children) findAll(c, pred, out);
+  return out;
+}
+const byClass = (n, cls) => findAll(n, (x) => classes(x).includes(cls));
+
+test("«Ver toda la tabla»: each pauta group is its own details, closed on load, named as in the pauta with its count", () => {
+  const groups = core.renderPautaTable(h, () => {});
+  assert.equal(groups.length, PAUTA_TABLE.length);
+  groups.forEach((d, i) => {
+    const g = PAUTA_TABLE[i];
+    const n = EXPECTED_ITEMS[g.group].preferir.length + EXPECTED_ITEMS[g.group].limitar.length;
+    assert.equal(d.tag, "details", g.group);
+    assert.ok(!d.props.open, `${g.group} starts closed`);
+    assert.ok(classes(d).includes("tabla-g"));
+    const summary = d.children[0];
+    assert.equal(summary.tag, "summary", g.group);
+    assert.equal(findAll(d, (x) => x.tag === "summary").length, 1);
+    assert.equal(textOfNode(byClass(summary, "tabla-g-name")[0]), g.group);
+    assert.equal(textOfNode(byClass(summary, "tabla-g-count")[0]), `${n} alimentos`);
+    assert.equal(textOfNode(summary), `${g.group} ${n} alimentos`);
+  });
+  assert.equal(textOfNode(byClass(groups[0], "tabla-g-count")[0]), "9 alimentos");
+  assert.equal(textOfNode(byClass(groups[3], "tabla-g-count")[0]), "3 alimentos");
+});
+
+test("the count says «1 alimento» for one and «N alimentos» otherwise", () => {
+  assert.equal(core.TEXT.foodCount(1), "1 alimento");
+  assert.equal(core.TEXT.foodCount(2), "2 alimentos");
+  assert.equal(core.TEXT.foodCount(9), "9 alimentos");
+  assert.ok(UI_COPY.includes("1 alimento") && UI_COPY.includes("2 alimentos"));
+});
+
+test("inside each group are its «Preferir» and «Limitar o evitar» parts and one button per pauta item, as before", () => {
+  const groups = core.renderPautaTable(h, () => {});
+  const seen = [];
+  groups.forEach((d, i) => {
+    const g = PAUTA_TABLE[i].group;
+    const heads = findAll(d, (x) => x.tag === "p" && classes(x).includes("tabla-col"));
+    assert.deepEqual(heads.map(textOfNode), ["Preferir", "Limitar o evitar"], g);
+    for (const col of ["preferir", "limitar"]) {
+      const head = heads.find((x) => classes(x).includes(col));
+      assert.ok(head, `${g} ${col}`);
+    }
+    const lists = findAll(d, (x) => x.tag === "ul" && classes(x).includes("opt-list"));
+    assert.equal(lists.length, 2, g);
+    lists.forEach((ul, k) => {
+      const column = ["preferir", "limitar"][k];
+      const buttons = ul.children.map((li) => { assert.equal(li.tag, "li"); return li.children[0]; });
+      assert.deepEqual(buttons.map((b) => textOfNode(byClass(b, "opt-name")[0])), EXPECTED_ITEMS[g][column], `${g} ${column}`);
+      for (const b of buttons) {
+        assert.equal(b.tag, "button");
+        assert.equal(b.props.type, "button");
+        assert.deepEqual(classes(b), ["btn", "opt"]);
+        assert.equal(textOfNode(byClass(b, "sr")[0]), "Elegir: ");
+        assert.equal(textOfNode(byClass(b, "opt-where")[0]), `${g} · ${COLUMNS[column]}`);
+        seen.push({ group: g, column, name: textOfNode(byClass(b, "opt-name")[0]) });
+      }
+    });
+  });
+  assert.deepEqual(seen, pautaOptions(), "every pauta item, once, in the table's order");
+});
+
+test("tapping an item inside a group picks that pauta cell, and it is saved in its group", () => {
+  const picked = [];
+  const groups = core.renderPautaTable(h, (o) => picked.push(o));
+  const carnes = groups.find((d) => textOfNode(byClass(d, "tabla-g-name")[0]) === "Carnes y proteínas");
+  const button = findAll(carnes, (x) => x.tag === "button").find((b) => textOfNode(byClass(b, "opt-name")[0]) === "Cecinas");
+  button.props.onclick();
+  assert.deepEqual(picked, [CECINAS]);
+  const { store } = newStore();
+  const r = store.addFromPauta(picked[0], {});
+  assert.equal(r.ok, true);
+  const g = groupItems(store.items());
+  assert.deepEqual(g.limitar.map((x) => [x.group, x.items.map((i) => i.name)]), [["Carnes y proteínas", ["Cecinas"]]]);
+  assert.deepEqual(g.preferir, []);
+  assert.deepEqual(g.otros, []);
+});
+
+test("the page draws the table and the search results with the same buttons from despensa-core.js", () => {
+  const js = read("despensa.js");
+  assert.match(js, /renderPautaTable\(el, /);
+  assert.match(js, /pickButton\(el, /);
+  assert.match(read("despensa.html"), /<details class="tabla">\s*<summary>Ver toda la tabla de tu pauta<\/summary>\s*<div id="tabla-completa"><\/div>/);
+});

@@ -8,6 +8,7 @@
 .form h3 { margin-bottom: .7rem; }
 /* Para el médico: the period on top, the sheet at full width below. */
 .sheet-wrap { display: grid; gap: 1.2rem; grid-template-columns: minmax(0, 1fr); }
+.sheet-wrap > * { min-width: 0; }
 
 @container sections (min-width: 46rem) {
   .two { grid-template-columns: minmax(17rem, 23rem) minmax(0, 1fr); gap: 1.6rem; }
@@ -37,8 +38,32 @@ textarea {
   color: var(--ink);
   caret-color: var(--accent);
 }
+/* Date and time (S30). WebKit/iOS gives these inputs a width of their own that
+   ignores the column unless min-width is 0; keep them inside the form, at the
+   same left padding as the other fields, with the value aligned left and the
+   tap height even when empty. */
 input[type="date"],
-input[type="time"] { max-width: 14rem; padding-inline: .45rem; }
+input[type="time"] {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 14rem;
+  min-height: var(--tap);
+  text-align: left;
+}
+input[type="date"]::-webkit-date-and-time-value,
+input[type="time"]::-webkit-date-and-time-value {
+  text-align: left;
+  margin: 0;
+  min-height: 1.55em;
+}
+/* iOS Safari only: drop the native button look, which centers the value and
+   sets its own size, so the rules above apply. Tapping still opens the picker. */
+@supports (-webkit-touch-callout: none) {
+  input[type="date"],
+  input[type="time"] { -webkit-appearance: none; appearance: none; }
+}
 input.num { max-width: 10rem; font-variant-numeric: tabular-nums; }
 textarea { resize: vertical; min-height: 5rem; }
 input[aria-invalid="true"],
@@ -57,8 +82,12 @@ legend { padding: 0; margin-bottom: .35rem; }
 
 /* Two short fields share a row when they fit; each wraps to its own row on a
    narrow phone or with large text. */
-.pair { display: flex; flex-wrap: wrap; gap: 0 1rem; }
-.pair > .field { flex: 1 1 8.5rem; }
+.pair { display: flex; flex-wrap: wrap; gap: 0 1rem; min-width: 0; }
+.pair > .field { flex: 1 1 8.5rem; min-width: 0; }
+/* Date with time (or two dates): side by side only when each gets room for
+   its whole value; on a phone or with large text each takes its own row. */
+.pair.datetime { min-width: 0; }
+.pair.datetime > .field { flex: 1 1 11rem; }
 fieldset > .pair > .field:last-child { margin-bottom: 0; }
 
 /* Radio choices drawn as big buttons; the checked one carries a check mark. */

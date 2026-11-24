@@ -438,6 +438,23 @@ h3 { margin: 0 0 .35rem; font-size: 1.12rem; line-height: 1.3; }
   .btn:not(.primary):hover, .speak:not([aria-pressed="true"]):hover { background: var(--bg); }
 }
 
+/* «Escuchar» messages (S28), added by app.js after the button's row. Empty
+   regions take no space; the words carry the meaning, not the color. */
+.speak-msgs { max-width: var(--measure); }
+.speak-msgs p { margin: 0; overflow-wrap: break-word; }
+.speak-msgs p:not(:empty) {
+  margin: 0 0 1rem;
+  padding: .6rem .9rem;
+  border: 2px solid var(--line);
+  border-left-width: 6px;
+  border-radius: var(--r-ctl);
+  background: var(--card);
+  color: var(--ink);
+  font-size: 1rem;
+  line-height: 1.45;
+}
+.speak-msgs .speak-fail:not(:empty) { border-color: var(--accent); font-weight: 700; }
+
 /* Cards */
 .card {
   background: var(--card);
@@ -672,7 +689,7 @@ html:has(.guia[open]) { overflow: hidden; }
 @media print {
   html { font-size: 12pt; }
   body { display: block; min-height: 0; }
-  .top, .skip, .tiles, .group-h, .crumbs, .pager, .siblings, .speak, .install, .foot, .guia, .guia-abrir { display: none !important; }
+  .top, .skip, .tiles, .group-h, .crumbs, .pager, .siblings, .speak, .speak-msgs, .install, .foot, .guia, .guia-abrir { display: none !important; }
   body.pauta .hub,
   body.pauta .screen,
   body.pauta section[data-route] { display: block !important; animation: none !important; }

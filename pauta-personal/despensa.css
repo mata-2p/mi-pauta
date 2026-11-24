@@ -81,14 +81,46 @@ details.tabla {
   padding: 0 .1rem;
   border-top: 2px solid var(--line);
 }
+/* Both the table and each pauta group (S27) open with a native summary. The
+   open/closed state is told by a chevron's direction (right = closed, down = open),
+   never by color alone; it turns softly, and does not move with reduced motion. */
 details.tabla summary {
+  position: relative;
   min-height: var(--tap);
   display: flex;
   align-items: center;
+  padding-left: 1.9rem;
   font-weight: 700;
   cursor: pointer;
+  list-style: none;
 }
-.tabla-g h3 { margin: .9rem 0 .2rem; font-size: 1.05rem; }
+details.tabla summary::-webkit-details-marker { display: none; }
+details.tabla summary::before {
+  content: "";
+  position: absolute;
+  left: .45rem;
+  top: calc(50% - .4rem);
+  width: .55rem;
+  height: .55rem;
+  border-right: 3px solid currentColor;
+  border-bottom: 3px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform .2s ease-out;
+}
+details.tabla[open] > summary::before, details.tabla-g[open] > summary::before { transform: rotate(45deg); }
+
+/* One pauta group: its name as in the pauta, and how many foods it has. */
+details.tabla-g { border-top: 1px solid var(--line); }
+details.tabla-g:last-child { border-bottom: 1px solid var(--line); }
+details.tabla-g > summary {
+  flex-wrap: wrap;
+  gap: .05rem .6rem;
+  padding-block: .35rem;
+}
+.tabla-g-name, .tabla-g-count { line-height: 1.3; }
+.tabla-g-name { font-size: 1.05rem; font-weight: 800; color: var(--ink); overflow-wrap: anywhere; }
+.tabla-g-count { font-size: .9rem; font-weight: 600; color: var(--muted); }
+.tabla-g-body { padding: 0 0 .5rem; }
 .tabla-col { margin: .5rem 0 .3rem; font-size: .9rem; font-weight: 800; }
 .tabla-col.preferir { color: var(--ink); }
 .tabla-col.limitar { color: var(--muted); }
@@ -149,6 +181,7 @@ details.tabla summary {
 @media (prefers-reduced-motion: reduce) {
   :root:has(body.despensa) { scroll-behavior: auto; }
   .entries > *, .shop > * { animation: none; }
+  details.tabla summary::before { transition: none; }
 }
 
 /* Paper: only the shopping list. */

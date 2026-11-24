@@ -4,6 +4,7 @@
 import {
   READER_URL, NOTICE_KEY, TIMEOUT_MS, SEALS, POTASSIUM, SODIUM, SI, NO, ILEGIBLE, CRITICAL,
   PREPARE_FAILED, phrasesFor, failureMessage, readingToForm, fitSize, encodeWithin, jpegHasApp1,
+  stripMetadata, MAX_BYTES,
   parseSodium, formatMg, sodiumEcho, sodiumError, readLine, preChecked, missingChoices,
   SAL_LIGHT, CATEGORY, NINGUNA, categoryReadLine, quoteLine,
 } from "./etiqueta-core.js";
@@ -137,8 +138,11 @@ async function prepare(file) {
     if (!out) throw new Error("too big");
     // Redraw at the size that was kept, so the preview is what will be sent.
     if (drawn !== out.scale) await encode(out.quality, out.scale);
-    const bytes = new Uint8Array(await out.blob.arrayBuffer());
-    if (jpegHasApp1(bytes)) throw new Error("metadata");
+    // WebKit always writes an APP1 Exif and an APP13 into the canvas JPEG (S29):
+    // drop every APP1–APP15 and COM segment, then check again before sending.
+    const bytes = stripMetadata(new Uint8Array(await out.blob.arrayBuffer()));
+    if (!bytes || jpegHasApp1(bytes)) throw new Error("metadata");
+    if (bytes.length > MAX_BYTES) throw new Error("too big");
     return bytes;
   } finally {
     image.done();

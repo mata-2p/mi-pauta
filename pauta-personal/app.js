@@ -15,8 +15,10 @@
   function tag(n) { return n.nodeType === 1 ? String(n.tagName).toUpperCase() : ""; }
   function attr(n, name) { return n.getAttribute ? n.getAttribute(name) : null; }
   function hasClass(n, c) { return (" " + (attr(n, "class") || "") + " ").indexOf(" " + c + " ") >= 0; }
+  // .speak-msgs holds the «Escuchar» hint and failure message (S28): never read aloud.
   function skipped(n) {
-    return n.nodeType === 1 && (SKIP[tag(n)] || attr(n, "hidden") !== null || attr(n, "aria-hidden") === "true");
+    return n.nodeType === 1 && (SKIP[tag(n)] || attr(n, "hidden") !== null || attr(n, "aria-hidden") === "true" ||
+      hasClass(n, "speak-msgs"));
   }
   function kids(n) { return Array.prototype.slice.call(n.childNodes || []); }
   function elements(n) { return kids(n).filter(function (c) { return c.nodeType === 1 && !skipped(c); }); }
@@ -131,6 +133,48 @@
   // Each «Escuchar» gets a new run; callbacks of a stopped run do nothing.
   var run = 0;
 
+  // S28: some browsers drop a speak() made in the same instant as cancel(), load
+  // their voices late, or never start. These bound each case.
+  var AFTER_CANCEL_MS = 100;
+  var START_WAIT_MS = 3000;
+
+  // S28b: ask for the voices as the page opens, so they are listed by the tap. The
+  // tap never waits for them: iOS only sounds a speak() made inside the tap.
+  function loadVoices() { synth.getVoices(); }
+  loadVoices();
+  if (synth.addEventListener) synth.addEventListener("voiceschanged", loadVoices);
+  else synth.onvoiceschanged = loadVoices;
+  var HINT = "¿No se escucha? Sube el volumen y revisa que el teléfono no esté en silencio.";
+  var FAIL = "No se pudo leer en voz alta en este equipo. Revisa el volumen y que el teléfono no esté en silencio. " +
+    "Si sigue sin sonar, este equipo no tiene una voz para leer en español.";
+
+  // Below each button's row: a polite region for the hint and an alert for the
+  // failure. Both exist (empty) from the start so screen readers announce changes.
+  // In a dialog (the guide) the row is the bottom edge, so they go at the end of
+  // the scrollable text the button reads, just above the row, and never clip.
+  var msgs = [];
+  buttons.forEach(function (b) {
+    var box = document.createElement("div");
+    box.className = "speak-msgs";
+    var hint = document.createElement("p");
+    hint.className = "speak-hint";
+    hint.setAttribute("aria-live", "polite");
+    var fail = document.createElement("p");
+    fail.className = "speak-fail";
+    fail.setAttribute("role", "alert");
+    box.appendChild(hint);
+    box.appendChild(fail);
+    var region = b.closest && b.closest("dialog") && document.getElementById(b.getAttribute("data-target"));
+    if (region) region.appendChild(box); else b.parentNode.insertAdjacentElement("afterend", box);
+    msgs.push({ btn: b, hint: hint, fail: fail });
+  });
+  function msgOf(b) {
+    for (var i = 0; i < msgs.length; i++) if (msgs[i].btn === b) return msgs[i];
+    return null;
+  }
+  function clearHints() { msgs.forEach(function (m) { if (m.hint.textContent) m.hint.textContent = ""; }); }
+  function clearFails() { msgs.forEach(function (m) { if (m.fail.textContent) m.fail.textContent = ""; }); }
+
   function pickVoice() {
     var voices = synth.getVoices();
     var prefs = ["es-CL", "es-419", "es-US", "es-MX", "es-ES", "es"];
@@ -155,33 +199,74 @@
       setLabel(b, "Escuchar");
     });
     active = null;
+    clearHints();
+  }
+
+  // Cancels only when something is speaking or queued. True when it cancelled.
+  function silence() {
+    if (!synth.speaking && !synth.pending) return false;
+    synth.cancel();
+    return true;
   }
 
   function stop() {
     reset();
-    synth.cancel();
+    return silence();
   }
 
-  // Leaving a screen stops the voice.
+  // S28d: the voice could not sound here. The button goes back and says so. It
+  // always cancels: a stuck utterance may be queued without the browser saying so.
+  function fail(btn) {
+    reset();
+    synth.cancel();
+    var m = msgOf(btn);
+    if (!m) return;
+    m.fail.textContent = FAIL;
+    if (m.fail.scrollIntoView) m.fail.scrollIntoView({ block: "nearest" });
+  }
+
+  // Leaving a screen stops the voice and clears its messages.
   document.addEventListener("routechange", function () {
     if (active) stop();
+    clearFails();
   });
 
   // Speaks the blocks one after another: a short pause falls between them, and
-  // «Detener» (or leaving) drops the rest of the queue.
-  function speakQueue(btn, queue) {
+  // «Detener» (or leaving) drops the rest of the queue. If the first block does
+  // not start within START_WAIT_MS, or fails before starting, it reports it.
+  // Without a voice it still speaks with es-CL; a device with no Spanish voice then
+  // fails through onerror or the watchdog.
+  function speakQueue(btn, queue, voice) {
     var mine = run;
-    var voice = pickVoice();
+    var started = false;
+    var watchdog = setTimeout(function () {
+      if (mine !== run || active !== btn || started) return;
+      // Sounding without an onstart (some browsers) counts as started.
+      if (synth.speaking) { started = true; return; }
+      fail(btn);
+    }, START_WAIT_MS);
     function next() {
       if (mine !== run || active !== btn) return;
       var text = queue.shift();
-      if (!text) { reset(); return; }
+      if (!text) { clearTimeout(watchdog); reset(); return; }
       var u = new SpeechSynthesisUtterance(text);
       u.lang = "es-CL";
       u.rate = 0.9;
-      if (voice) u.voice = voice;
+      if (voice) {
+        u.voice = voice;
+        if (voice.lang) u.lang = voice.lang.replace("_", "-");
+      }
+      u.onstart = function () {
+        if (started) return;
+        started = true;
+        clearTimeout(watchdog);
+      };
       u.onend = next;
-      u.onerror = function () { if (mine === run && active === btn) reset(); };
+      u.onerror = function () {
+        if (mine !== run || active !== btn) return;
+        clearTimeout(watchdog);
+        if (started) reset(); else fail(btn);
+      };
       synth.speak(u);
     }
     next();
@@ -191,7 +276,8 @@
     btn.setAttribute("aria-pressed", "false");
     btn.addEventListener("click", function () {
       var wasActive = active === btn;
-      stop();
+      var cancelled = stop();
+      clearFails();
       if (wasActive) return;
 
       var section = document.getElementById(btn.getAttribute("data-target"));
@@ -200,7 +286,13 @@
       active = btn;
       btn.setAttribute("aria-pressed", "true");
       setLabel(btn, "Detener");
-      speakQueue(btn, queue);
+      var m = msgOf(btn);
+      if (m) m.hint.textContent = HINT;
+      var mine = run;
+      function go() { if (mine === run) speakQueue(btn, queue, pickVoice()); }
+      // Without a cancel, speak inside the tap itself (iOS needs the gesture), even
+      // if no voice is listed yet. The only wait is the one after a real cancel.
+      if (cancelled) setTimeout(go, AFTER_CANCEL_MS); else go();
     });
   });
 

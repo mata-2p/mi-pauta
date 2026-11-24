@@ -326,6 +326,7 @@ export const TEXT = {
   typed: "Escrito por ti",
   addTyped: (name) => `Agregar «${name}» tal como lo escribiste`,
   pick: "Elegir",
+  foodCount: (n) => (n === 1 ? "1 alimento" : `${n} alimentos`),
   noMatch: "Ningún alimento de tu pauta tiene esas palabras. Puedes agregarlo tal como lo escribiste.",
   matches: (n) => (n === 1 ? "Un alimento de tu pauta tiene esas palabras." : `${n} alimentos de tu pauta tienen esas palabras.`),
   quantity: "Cantidad",
@@ -352,5 +353,37 @@ export const UI_COPY = [
   COLUMNS.preferir, COLUMNS.limitar, OTHERS_HEADING,
   MSG_PICK, MSG_NAME, MSG_GONE, LOAD_ERROR,
   ...Object.values(TEXT).map(sample),
-  TEXT.matches(1),
+  TEXT.matches(1), TEXT.foodCount(1),
 ];
+
+// --- Drawing the pauta's table («Agregar») ------------------------------------------
+// h(tag, props, ...children) builds one element: el() in despensa.js, plain objects
+// in the tests. onPick receives { group, column, name }, exactly a cell of the table.
+
+/** One large button that picks a pauta item (search results and the full table). */
+export function pickButton(h, option, onPick) {
+  const o = { group: option.group, column: option.column, name: option.name };
+  return h("li", null, h("button", { type: "button", class: "btn opt", onclick: () => onPick(o) },
+    h("span", { class: "sr" }, `${TEXT.pick}: `),
+    h("span", { class: "opt-name" }, o.name),
+    h("span", { class: "opt-where" }, `${o.group} · ${COLUMNS[o.column]}`)));
+}
+
+/**
+ * The whole table, one native details per pauta group, closed on load (S27). Its
+ * summary names the group as the pauta does and how many foods it has; inside are
+ * the «Preferir» and «Limitar o evitar» parts with one button per item. The groups
+ * come only from the pauta's table (S4).
+ */
+export function renderPautaTable(h, onPick) {
+  return GROUPS.map((g) => h("details", { class: "tabla-g" },
+    h("summary", null,
+      h("span", { class: "tabla-g-name" }, g.group),
+      " ",
+      h("span", { class: "tabla-g-count" }, TEXT.foodCount(COLUMN_KEYS.reduce((n, c) => n + g[c].items.length, 0)))),
+    h("div", { class: "tabla-g-body" },
+      COLUMN_KEYS.map((column) => [
+        h("p", { class: `tabla-col ${column}` }, COLUMNS[column]),
+        h("ul", { class: "opt-list" }, g[column].items.map((name) => pickButton(h, { group: g.group, column, name }, onPick))),
+      ]))));
+}

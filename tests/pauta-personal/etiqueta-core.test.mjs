@@ -8,7 +8,7 @@ import { readFileSync } from "node:fs";
 const here = (p) => new URL(`../../pauta-personal/${p}`, import.meta.url);
 const core = await import(here("etiqueta-core.js"));
 const {
-  isJpeg, jpegHasApp1, failureMessage, phrasesFor, readingToForm, fitSize, encodeWithin,
+  isJpeg, jpegHasApp1, stripMetadata, failureMessage, phrasesFor, readingToForm, fitSize, encodeWithin,
   PAUTA_SODIO, PAUTA_POTASIO, NEUTRAL, NOTICE_KEY, MAX_BYTES, MAX_SIDE, TIMEOUT_MS,
   SI, NO, ILEGIBLE, UI_COPY,
   UNREAD_SODIO, UNREAD_POTASIO, CRITICAL, parseSodium, formatMg, sodiumEcho, sodiumError,
@@ -83,6 +83,128 @@ test("jpegHasApp1: fails closed on a broken or truncated header", () => {
   assert.equal(jpegHasApp1(new Uint8Array([...SOI, ...APP0])), true);
   // Not a JPEG at all.
   assert.equal(jpegHasApp1(new Uint8Array([1, 2, 3, 4])), true);
+});
+
+// --- S29: WebKit's canvas JPEG carries APP1 Exif and APP13; strip them ----------
+
+// What WebKit's canvas.toBlob('image/jpeg') writes: APP0 JFIF, then an APP1 Exif with
+// only an IFD0 ExifIFD pointer (ColorSpace, PixelXDimension, PixelYDimension), then an
+// APP13 «Photoshop 3.0», then the frame.
+const WEBKIT_EXIF = seg(0xe1, [
+  ...ascii("Exif"), 0, 0, ...ascii("MM"), 0, 42, 0, 0, 0, 8,
+  0, 1, 0x87, 0x69, 0, 4, 0, 0, 0, 1, 0, 0, 0, 26, 0, 0, 0, 0,
+  0, 3, 0xa0, 0x01, 0, 3, 0, 0, 0, 1, 0, 1, 0, 0,
+  0xa0, 0x02, 0, 4, 0, 0, 0, 1, 0, 0, 0x06, 0x40,
+  0xa0, 0x03, 0, 4, 0, 0, 0, 1, 0, 0, 0x04, 0xb0, 0, 0, 0, 0,
+]);
+const APP13 = seg(0xed, [...ascii("Photoshop 3.0"), 0, ...ascii("8BIM"), 0x04, 0x04, 0, 0, 0, 0, 0, 0]);
+const APP2 = seg(0xe2, [...ascii("ICC_PROFILE"), 0, 1, 1, 9, 9, 9]);
+const APP15 = seg(0xef, [1, 2, 3]);
+const COM = seg(0xfe, ascii("made by a phone"));
+const SOF0 = seg(0xc0, [8, 0, 16, 0, 16, 1, 1, 0x11, 0]);
+const DHT = seg(0xc4, [0, ...new Array(16).fill(0)]);
+const arr = (u8) => Array.from(u8);
+
+test("stripMetadata: drops APP1 Exif, APP13 and COM, keeps SOI, APP0, the frame and the scan byte for byte", () => {
+  const input = jpeg(APP0, WEBKIT_EXIF, APP13, COM, DQT, SOF0, DHT, SOS);
+  assert.equal(jpegHasApp1(input), true);
+  const out = stripMetadata(input);
+  assert.ok(out instanceof Uint8Array);
+  assert.notEqual(out, input);
+  assert.deepEqual(arr(out), arr(jpeg(APP0, DQT, SOF0, DHT, SOS)));
+  assert.equal(jpegHasApp1(out), false);
+  // The input is left as it was.
+  assert.deepEqual(arr(input), arr(jpeg(APP0, WEBKIT_EXIF, APP13, COM, DQT, SOF0, DHT, SOS)));
+});
+
+test("stripMetadata: drops every APP1–APP15 (Exif, XMP, ICC, APP15) wherever it sits before the scan", () => {
+  const input = jpeg(APP0, APP2, DQT, XMP, SOF0, APP15, EXIF, DHT, COM, SOS);
+  const out = stripMetadata(input);
+  assert.deepEqual(arr(out), arr(jpeg(APP0, DQT, SOF0, DHT, SOS)));
+  assert.equal(jpegHasApp1(out), false);
+});
+
+test("stripMetadata: fill bytes before a dropped APP1 do not leave it behind", () => {
+  const out = stripMetadata(jpeg(APP0, [0xff, 0xff], WEBKIT_EXIF, DQT, SOF0, DHT, SOS));
+  assert.deepEqual(arr(out), arr(jpeg(APP0, DQT, SOF0, DHT, SOS)));
+  assert.equal(jpegHasApp1(out), false);
+});
+
+test("stripMetadata: a Chromium-like JPEG (APP0 only) comes back byte-identical", () => {
+  const input = jpeg(APP0, DQT, SOF0, DHT, SOS);
+  const out = stripMetadata(input);
+  assert.ok(out instanceof Uint8Array);
+  assert.deepEqual(arr(out), arr(input));
+  assert.equal(jpegHasApp1(out), false);
+});
+
+test("stripMetadata: FF E1 and FF FE inside the scan data are left untouched", () => {
+  const scan = [...seg(0xda, [1, 1, 0, 0, 63, 0]), 0xff, 0xe1, 0x00, 0x04, 0xff, 0xfe, 0x00, 0x03, 0x77];
+  const input = jpeg(APP0, WEBKIT_EXIF, DQT, SOF0, DHT, scan);
+  assert.deepEqual(arr(stripMetadata(input)), arr(jpeg(APP0, DQT, SOF0, DHT, scan)));
+});
+
+test("stripMetadata: returns null for input that is not a JPEG, truncated or malformed", () => {
+  // Not a JPEG at all.
+  assert.equal(stripMetadata(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])), null);
+  assert.equal(stripMetadata(new Uint8Array([])), null);
+  // A segment length that runs past the end of the file.
+  assert.equal(stripMetadata(new Uint8Array([...SOI, ...APP0, 0xff, 0xe1, 0x40, 0x00, 1, 2])), null);
+  assert.equal(stripMetadata(new Uint8Array([...SOI, 0xff, 0xdb, 0x40, 0x00, 1, 2])), null);
+  // A length below 2.
+  assert.equal(stripMetadata(new Uint8Array([...SOI, 0xff, 0xe1, 0x00, 0x01, ...DQT, ...SOS, ...EOI])), null);
+  // Garbage where a marker should be.
+  assert.equal(stripMetadata(new Uint8Array([...SOI, ...APP0, 0x00, 0x11, 0x22])), null);
+  // No start of scan.
+  assert.equal(stripMetadata(new Uint8Array([...SOI, ...APP0, ...WEBKIT_EXIF])), null);
+  assert.equal(stripMetadata(new Uint8Array([...SOI, ...APP0, ...DQT, ...EOI])), null);
+  // Cut inside the start-of-scan header.
+  assert.equal(stripMetadata(new Uint8Array([...SOI, ...APP0, 0xff, 0xda, 0x00, 0x0c, 1])), null);
+});
+
+test("stripMetadata: anything after the end of image is dropped, even a second JPEG with Exif (R1-001)", () => {
+  const clean = jpeg(APP0, DQT, SOF0, DHT, SOS);
+  const trailer = [...SOI, ...APP0, ...WEBKIT_EXIF, ...ascii("GPS 33.4 S 70.6 W"), ...EOI, ...ascii("tail")];
+  const input = new Uint8Array([...jpeg(APP0, WEBKIT_EXIF, DQT, SOF0, DHT, SOS), ...trailer]);
+  assert.deepEqual(arr(stripMetadata(input)), arr(clean));
+  // Plain bytes after the end of image go too.
+  assert.deepEqual(arr(stripMetadata(new Uint8Array([...clean, 0, 0, 0x41]))), arr(clean));
+});
+
+test("stripMetadata: the end of image is found past stuffed FF 00, restart markers and fill bytes (R1-001)", () => {
+  // FF 00 D9 is a stuffed FF then a data byte, not an end of image; FF D7 is a restart.
+  const scan = [...seg(0xda, [1, 1, 0, 0, 63, 0]), 0xff, 0x00, 0xd9, 0x11, 0xff, 0xd7, 0x22, 0xff, 0x00, 0xff, 0xd0, 0x33];
+  const normal = jpeg(APP0, DQT, SOF0, DHT, scan);
+  assert.deepEqual(arr(stripMetadata(normal)), arr(normal), "a normal file is not byte-identical");
+  // Fill bytes before the end of image: FF FF D9 still ends it.
+  const filled = new Uint8Array([...SOI, ...APP0, ...DQT, ...scan, 0xff, ...EOI, 9, 9]);
+  assert.deepEqual(arr(stripMetadata(filled)), arr(filled.subarray(0, filled.length - 2)));
+});
+
+test("stripMetadata: no end of image after the scan returns null (R1-001)", () => {
+  assert.equal(stripMetadata(new Uint8Array([...SOI, ...APP0, ...DQT, ...SOS])), null);
+  // FF 00 D9 is not an end of image.
+  assert.equal(stripMetadata(new Uint8Array([...SOI, ...APP0, ...DQT, ...SOS, 0xff, 0x00, 0xd9])), null);
+});
+
+test("stripMetadata: before the scan, FF 00, a second SOI, TEM and restart markers are malformed (R1-002)", () => {
+  for (const m of [0x00, 0xd8, 0x01, 0xd0, 0xd3, 0xd7]) {
+    // A length-looking pair follows, so reading it as a segment would walk on.
+    const input = new Uint8Array([...SOI, ...APP0, 0xff, m, 0x00, 0x02, ...DQT, ...SOF0, ...DHT, ...SOS, ...EOI]);
+    assert.equal(stripMetadata(input), null, `marker 0x${m.toString(16)} accepted`);
+    // Right after SOI too.
+    const first = new Uint8Array([...SOI, 0xff, m, 0x00, 0x02, ...APP0, ...DQT, ...SOS, ...EOI]);
+    assert.equal(stripMetadata(first), null, `marker 0x${m.toString(16)} accepted after SOI`);
+  }
+});
+
+test("etiqueta.js strips the encoded photo and still refuses it if an APP1 is left (S29)", () => {
+  const js = read("etiqueta.js");
+  const prep = js.slice(js.indexOf("async function prepare("), js.indexOf("async function onFile("));
+  assert.match(prep, /stripMetadata\(/);
+  assert.match(prep, /jpegHasApp1\(/);
+  assert.ok(prep.indexOf("stripMetadata(") < prep.lastIndexOf("jpegHasApp1("), "checks after stripping");
+  assert.match(prep, /throw new Error/);
 });
 
 // --- Errors shown to the person ------------------------------------------------

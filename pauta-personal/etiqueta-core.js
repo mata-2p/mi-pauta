@@ -362,3 +362,61 @@ export function jpegHasApp1(b) {
   }
   return true;
 }
+
+/**
+ * Copy of a JPEG without the metadata segments before the start of scan: every
+ * APP1–APP15 (Exif, XMP, ICC, Photoshop/IPTC…) and every COM. SOI, APP0 (JFIF), the
+ * other segments and the scan up to its end of image (EOI) are kept byte for byte;
+ * anything after the EOI (a trailer, a second embedded JPEG) is dropped.
+ * WebKit's canvas always writes an APP1 Exif and an APP13, even with no metadata (S29).
+ * Returns null for anything it cannot walk (not a JPEG, truncated, a marker that
+ * cannot come before the scan, no start of scan or no end of image).
+ */
+export function stripMetadata(b) {
+  if (!(b instanceof Uint8Array) || !isJpeg(b)) return null;
+  const keep = [b.subarray(0, 2)];
+  let i = 2;
+  while (i + 1 < b.length) {
+    if (b[i] !== 0xff) return null;
+    const start = i; // fill bytes go with the segment they precede
+    let m = b[i + 1];
+    while (m === 0xff && i + 2 < b.length) {
+      i += 1;
+      m = b[i + 1];
+    }
+    if (m === 0xd9 || m === 0xff) return null; // ended without an image
+    // Stuffing, a second SOI, TEM and restarts never come before the scan (R1-002).
+    if (m === 0x00 || m === 0xd8 || m === 0x01 || (m >= 0xd0 && m <= 0xd7)) return null;
+    if (i + 3 >= b.length) return null;
+    const len = (b[i + 2] << 8) | b[i + 3];
+    if (len < 2 || i + 2 + len > b.length) return null;
+    if (m === 0xda) {
+      const end = endOfImage(b, i + 2 + len);
+      if (end < 0) return null;
+      keep.push(b.subarray(start, end)); // start of scan and the image data, untouched
+      const out = new Uint8Array(keep.reduce((n, p) => n + p.length, 0));
+      let at = 0;
+      for (const p of keep) {
+        out.set(p, at);
+        at += p.length;
+      }
+      return out;
+    }
+    const metadata = (m >= 0xe1 && m <= 0xef) || m === 0xfe;
+    if (!metadata) keep.push(b.subarray(start, i + 2 + len));
+    i += 2 + len;
+  }
+  return null;
+}
+
+// Index just past the first EOI (FF D9) in the scan data from `i`, or -1. A stuffed
+// FF 00 and a restart FF D0–FF D7 are data; extra FF bytes are fill (R1-001).
+function endOfImage(b, i) {
+  while (i + 1 < b.length) {
+    if (b[i] !== 0xff) { i += 1; continue; }
+    const m = b[i + 1];
+    if (m === 0xd9) return i + 2;
+    i += m === 0xff ? 1 : 2;
+  }
+  return -1;
+}
