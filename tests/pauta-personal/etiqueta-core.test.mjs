@@ -714,3 +714,12 @@ test("S24: the new copy has no judging words and no color names", () => {
   for (const t of [UNREAD_SAL_LIGHT, UNREAD_CATEGORIA, ...s24Messages]) assert.ok(UI_COPY.includes(t), t);
   for (const l of Object.values(CATEGORY_LINES).flat()) assert.ok(UI_COPY.includes(l.text), l.text);
 });
+
+test("S24: the new answers are never pre-checked, and an old Worker reply still asks for them", () => {
+  const checked = preChecked(readingToForm(reading({ dice_sal_light: SI, categoria_impresa: "cecinas" })));
+  assert.ok(!("dice_sal_light" in checked));
+  assert.ok(!("categoria_impresa" in checked));
+  const missing = missingChoices(readingToForm(reading())).map((m) => m.key);
+  assert.ok(missing.includes("dice_sal_light"));
+  assert.ok(missing.includes("categoria_impresa"));
+});

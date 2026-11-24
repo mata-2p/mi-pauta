@@ -29,7 +29,7 @@ PAGES = ["index.html", "registro.html"]
 # Pages with a single screen and no hub of tiles.
 SINGLE = ["etiqueta.html", "despensa.html"]
 CSS = ["styles.css", "registro.css", "etiqueta.css", "despensa.css"]
-VERSION = "pauta-v8"
+VERSION = "pauta-v9"
 HUB = "inicio"
 
 # The largest text step (A+) is 1.5 x 19 px. A width in rem or em that is wider

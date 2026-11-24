@@ -50,6 +50,7 @@
           <h1 id="t-despensa" tabindex="-1">Mi despensa</h1>
         </div>
         <p class="intro">Lo que hay en casa, ordenado con la tabla de tu pauta. Se guarda solo en este teléfono.</p>
+        <button type="button" class="btn guia-abrir" data-guia-abrir hidden>¿Cómo se usa?</button>
 
         <noscript><p class="card measure">Para anotar la despensa hay que activar JavaScript. La tabla <a href="index.html#elegir">Qué elegir</a> funciona sin él.</p></noscript>
 
@@ -159,7 +160,25 @@
     </div>
   </main>
 
+  <!-- S26: first-use guide. guia.js fills it from guia-core.js; without it nothing shows. -->
+  <dialog id="guia" class="guia" data-guia="despensa" aria-labelledby="guia-titulo">
+    <div class="guia-top">
+      <p id="guia-paso" class="guia-paso"></p>
+      <button type="button" class="btn guia-saltar" data-guia="saltar">Saltar</button>
+    </div>
+    <div id="guia-texto" class="guia-texto" tabindex="0" role="region" aria-labelledby="guia-titulo">
+      <h2 id="guia-titulo" tabindex="-1"></h2>
+      <div id="guia-cuerpo"></div>
+    </div>
+    <div class="guia-acciones">
+      <button type="button" class="speak" data-target="guia-texto"><svg class="i" aria-hidden="true"><use href="#i-speaker"/></svg><span>Escuchar</span></button>
+      <button type="button" class="btn" data-guia="anterior">Anterior</button>
+      <button type="button" class="btn primary" data-guia="siguiente">Siguiente</button>
+    </div>
+  </dialog>
+
   <script src="app.js"></script>
   <script type="module" src="despensa.js"></script>
+  <script type="module" src="guia.js"></script>
 </body>
 </html>

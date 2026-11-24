@@ -6,6 +6,9 @@
 // The label reader (Cloudflare Worker, etiquetas-worker/). Only this address is called.
 export const READER_URL = "https://mi-pauta-etiquetas.matiasjbarriah.workers.dev/leer";
 
+/** True when there is a reader address. Other modules ask here instead of copying it. */
+export const isReaderConfigured = () => READER_URL !== "";
+
 // Remembers that the notice was read. Separate from every registro key.
 // v2: the notice now names where the photo goes, so it is shown once again.
 export const NOTICE_KEY = "etiqueta-aviso-v2";

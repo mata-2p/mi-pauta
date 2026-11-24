@@ -51,6 +51,7 @@
         <h1 id="t-leer" tabindex="-1">Leer una etiqueta</h1>
       </div>
       <p class="intro">Saca una foto de la etiqueta de un alimento envasado. Lo que se lea aparece para que lo revises con el envase.</p>
+      <button type="button" class="btn guia-abrir" data-guia-abrir hidden>¿Cómo se usa?</button>
 
       <noscript><p class="card measure">Para leer una etiqueta con una foto hay que activar JavaScript. La guía <a href="index.html#etiquetas">Cómo leer las etiquetas</a> funciona sin él.</p></noscript>
 
@@ -214,7 +215,25 @@
     </section>
   </main>
 
+  <!-- S26: first-use guide. guia.js fills it from guia-core.js; without it nothing shows. -->
+  <dialog id="guia" class="guia" data-guia="etiqueta" aria-labelledby="guia-titulo">
+    <div class="guia-top">
+      <p id="guia-paso" class="guia-paso"></p>
+      <button type="button" class="btn guia-saltar" data-guia="saltar">Saltar</button>
+    </div>
+    <div id="guia-texto" class="guia-texto" tabindex="0" role="region" aria-labelledby="guia-titulo">
+      <h2 id="guia-titulo" tabindex="-1"></h2>
+      <div id="guia-cuerpo"></div>
+    </div>
+    <div class="guia-acciones">
+      <button type="button" class="speak" data-target="guia-texto"><svg class="i" aria-hidden="true"><use href="#i-speaker"/></svg><span>Escuchar</span></button>
+      <button type="button" class="btn" data-guia="anterior">Anterior</button>
+      <button type="button" class="btn primary" data-guia="siguiente">Siguiente</button>
+    </div>
+  </dialog>
+
   <script src="app.js"></script>
   <script type="module" src="etiqueta.js"></script>
+  <script type="module" src="guia.js"></script>
 </body>
 </html>

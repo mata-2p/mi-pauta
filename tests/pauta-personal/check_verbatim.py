@@ -13,6 +13,10 @@ And the medical indication of the discharge (S23): one block before the pauta's
 first section with exactly its heading, its date, the indication as written and
 the line that sends the person to the team; nothing else.
 
+And the first-use guide (S26): its copy in guia-core.js and guia.js, and the
+guide dialog and «¿Cómo se usa?» button of every page. It explains how the app
+is used, so it has no judging words, no clinical numbers and no pauta sentence.
+
 Usage: python3 -I tests/pauta-personal/check_verbatim.py pauta-personal/index.html
 """
 import os
@@ -286,6 +290,60 @@ def check_despensa(base, index_html):
     return problems, len(rows)
 
 
+# S26: the first-use guide. Word stems it must never use; «ALTO EN …» (the seal, in
+# capitals) is the only exception for «alto».
+GUIDE_FORBIDDEN = [
+    "normal", "alto", "bajo", "riesgo", "elevad", "puedes comer", "puede comer", "prohibid",
+    "peligr", "demasiad", "exceso", "permitido", "es seguro", "semáforo", "cumplimiento", "puntaje",
+]
+GUIDE_SCRIPTS = ["guia-core.js", "guia.js"]
+GUIDE_PAGES = ["index.html", "registro.html", "despensa.html", "etiqueta.html"]
+JS_STRING = re.compile(r'"((?:[^"\\\n]|\\.)*)"|`((?:[^`\\]|\\.)*)`')
+SEAL = re.compile(r"«ALTO EN [A-ZÁÉÍÓÚÑ ]+»")
+
+
+def check_guide(base):
+    """Returns (problems, texts checked) for the guide's scripts and its markup in each page."""
+    problems = []
+    texts = []  # (where, text)
+    for name in GUIDE_SCRIPTS:
+        p = os.path.join(base, name)
+        if not os.path.isfile(p):
+            problems.append(f"GUIDE: missing {name}")
+            continue
+        with open(p, encoding="utf-8") as fh:
+            src = fh.read()
+        # The whole file (comments too) for the words; its strings one by one for the rest.
+        texts.append((name, src))
+        texts += [(name, a or b) for a, b in JS_STRING.findall(src)]
+    for name in GUIDE_PAGES:
+        with open(os.path.join(base, name), encoding="utf-8") as fh:
+            html = fh.read()
+        dialog = re.search(r'<dialog id="guia".*?</dialog>', html, re.S)
+        if not dialog:
+            problems.append(f"GUIDE: {name} has no guide dialog")
+        else:
+            texts.append((name, page_text(dialog.group(0))))
+        opener = re.search(r"<button[^>]*data-guia-abrir[^>]*>([^<]*)</button>", html)
+        if not opener or opener.group(1) != "¿Cómo se usa?":
+            problems.append(f"GUIDE: {name} has no «¿Cómo se usa?» button")
+        else:
+            texts.append((name, opener.group(1)))
+    for where, text in texts:
+        plain = SEAL.sub(" ", text)
+        for w in GUIDE_FORBIDDEN:
+            if re.search(rf"(?<!\w){re.escape(w)}", plain, re.I):
+                problems.append(f"GUIDE: FORBIDDEN WORD in {where}: {w}")
+        for unit in FORBIDDEN.findall(text):
+            problems.append(f"GUIDE: FORBIDDEN UNIT in {where}: {unit}")
+        for q in re.findall(r"«([^»]+\.)»", text):
+            problems.append(f"GUIDE: quotes a sentence in {where}: {q!r}")
+        for s in SOURCE + [ALTA_QUOTE]:
+            if s in text:
+                problems.append(f"GUIDE: quotes the pauta in {where}: {s[:50]!r}")
+    return sorted(set(problems)), len(texts)
+
+
 def main(path):
     with open(path, encoding="utf-8") as fh:
         html = fh.read()
@@ -319,17 +377,22 @@ def main(path):
     despensa_problems, rows = check_despensa(os.path.dirname(path), html)
     for p in despensa_problems:
         print(p)
+    guide_problems, guide_texts = check_guide(os.path.dirname(path))
+    for p in guide_problems:
+        print(p)
     print(
         f"{len(SOURCE) - len(missing)}/{len(SOURCE)} source sentences present; "
         f"forbidden units: {len(numbers)}; sections: {len(SECTIONS) - len(no_section)}/{len(SECTIONS)}; "
         f"nav links: {len(SECTIONS) - len(no_link)}/{len(SECTIONS)}; forbidden phrases: {len(phrases)}; "
         f"label screen: {quotes} pauta quotes checked, {len(label_problems)} problems; "
         f"despensa: {rows} pauta table rows checked, {len(despensa_problems)} problems; "
+        f"guide: {guide_texts} texts checked, {len(guide_problems)} problems; "
         f"alta: {alta_lines}/{len(ALTA)} lines in order, {len(alta_problems)} problems; "
         f"forbidden words outside the pauta: {len(own_words)}"
     )
-    return 1 if (missing or numbers or no_section or no_link or phrases or label_problems
+    status = 1 if (missing or numbers or no_section or no_link or phrases or label_problems
                  or despensa_problems or alta_problems or own_words) else 0
+    return 1 if guide_problems else status
 
 
 if __name__ == "__main__":

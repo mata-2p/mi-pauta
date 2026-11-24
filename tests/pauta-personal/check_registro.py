@@ -10,6 +10,10 @@ And «Mi despensa» (despensa.html): no judging words, a label on every control,
 nothing loaded from outside the site, no network at all in its scripts, and
 links to it from the pauta and from Mis anotaciones.
 
+And the first-use guide (S26): its scripts (guia.js, guia-core.js) use no network
+and no judging words, and every page has the guide dialog without loading
+anything from outside.
+
 Usage: python3 -I tests/pauta-personal/check_registro.py pauta-personal/registro.html
 """
 import os
@@ -200,6 +204,48 @@ def check_despensa_page(base, registro_page):
     return problems
 
 
+# The first-use guide: scripts and the pages that carry its dialog.
+GUIDE_SCRIPTS = ["guia.js", "guia-core.js"]
+GUIDE_PAGES = ["index.html", "registro.html", "despensa.html", "etiqueta.html"]
+GUIDE_FORBIDDEN = DESPENSA_FORBIDDEN
+
+
+def check_guide(base):
+    """Returns the problems found in the guide's scripts and dialogs."""
+    problems = []
+    for name in GUIDE_SCRIPTS:
+        p = os.path.join(base, name)
+        if not os.path.isfile(p):
+            problems.append(f"GUIDE: missing {name}")
+            continue
+        with open(p, encoding="utf-8") as fh:
+            src = fh.read()
+        for m in NETWORK_APIS.findall(src):
+            problems.append(f"GUIDE: NETWORK API in {name}: {m}")
+        for w in GUIDE_FORBIDDEN:
+            if w in src.lower():
+                problems.append(f"GUIDE: FORBIDDEN WORD in {name}: {w}")
+    for name in GUIDE_PAGES:
+        with open(os.path.join(base, name), encoding="utf-8") as fh:
+            html = fh.read()
+        dialog = re.search(r'<dialog id="guia".*?</dialog>', html, re.S)
+        if not dialog:
+            problems.append(f"GUIDE: {name} has no guide dialog")
+            continue
+        page = Page()
+        page.feed(dialog.group(0))
+        text = re.sub(r"\s+", " ", " ".join(page.parts)).lower()
+        for w in GUIDE_FORBIDDEN:
+            if w in text:
+                problems.append(f"GUIDE: FORBIDDEN WORD in the dialog of {name}: {w}")
+        for u in page.urls:
+            if SCHEME.match(u):
+                problems.append(f"GUIDE: EXTERNAL URL in the dialog of {name}: {u}")
+        if '<script type="module" src="guia.js"></script>' not in html:
+            problems.append(f"GUIDE: {name} does not load guia.js")
+    return problems
+
+
 def main(path):
     with open(path, encoding="utf-8") as fh:
         html = fh.read()
@@ -238,6 +284,8 @@ def main(path):
     problems += label_problems
     despensa_problems = check_despensa_page(base, html)
     problems += despensa_problems
+    guide_problems = check_guide(base)
+    problems += guide_problems
 
     for p in problems:
         print(p)
@@ -249,7 +297,8 @@ def main(path):
         f"network apis: {sum(1 for p in problems if p.startswith('NETWORK'))}; "
         f"fields without label: {len(unlabeled)}; "
         f"label page problems: {len(label_problems)}; "
-        f"despensa page problems: {len(despensa_problems)}"
+        f"despensa page problems: {len(despensa_problems)}; "
+        f"guide problems: {len(guide_problems)}"
     )
     return 1 if problems else 0
 
